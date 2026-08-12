@@ -141,7 +141,7 @@ export default function RoomsDrawer({
                       className="w-full truncate px-2 pb-1 text-[12px] text-accent hover:underline"
                       title={shareUrl(room.share_token)}
                     >
-                      /s/{room.share_token}
+                      {room.share_token}
                     </a>
                   )}
                 </>
