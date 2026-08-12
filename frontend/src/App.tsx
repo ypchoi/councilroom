@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   attachmentUrl,
+  shareUrl,
   watchRun,
   type Message,
   type Provider,
@@ -9,10 +10,12 @@ import {
   type RunView,
   type Settings,
 } from "./api";
+import Attachments from "./components/Attachments";
 import Composer from "./components/Composer";
 import CouncilAnswer, { type LiveStatus } from "./components/CouncilAnswer";
 import RoomsDrawer from "./components/RoomsDrawer";
 import SettingsPanel from "./components/SettingsPanel";
+import ShareBar from "./components/ShareBar";
 
 type RunState = { run: RunView | null; live: LiveStatus; stage: string };
 
@@ -218,6 +221,17 @@ export default function App() {
     navigate(null);
   }
 
+  async function share(id: string) {
+    const { share_token } = await api.shareRoom(id);
+    setRooms((current) => current.map((r) => (r.id === id ? { ...r, share_token } : r)));
+    await navigator.clipboard.writeText(shareUrl(share_token)).catch(() => {});
+  }
+
+  async function unshare(id: string) {
+    await api.unshareRoom(id);
+    setRooms((current) => current.map((r) => (r.id === id ? { ...r, share_token: null } : r)));
+  }
+
   async function removeRoom(id: string) {
     await api.deleteRoom(id);
     const remaining = rooms.filter((r) => r.id !== id);
@@ -284,6 +298,7 @@ export default function App() {
   };
 
   const pendingRun = Object.values(runs).find((r) => r.run === null || r.run.status !== "completed");
+  const activeRoom = rooms.find((r) => r.id === roomId) ?? null;
 
   return (
     <div className="flex h-full flex-col">
@@ -305,10 +320,24 @@ export default function App() {
           <option value="quick">Quick — one round</option>
           <option value="deep">Deep — peer review</option>
         </select>
+        {activeRoom && !activeRoom.share_token && (
+          <button
+            className="p-1 text-xl leading-none sm:text-lg"
+            onClick={() => share(activeRoom.id)}
+            title="Create a public read-only link to this room"
+            aria-label="Share room"
+          >
+            🔗
+          </button>
+        )}
         <button className="p-1 text-xl leading-none sm:text-lg" onClick={() => setShowSettings(true)} aria-label="Settings">
           ⚙
         </button>
       </header>
+
+      {activeRoom?.share_token && (
+        <ShareBar token={activeRoom.share_token} onUnshare={() => unshare(activeRoom.id)} />
+      )}
 
       <main className="flex-1 space-y-4 overflow-y-auto p-3">
         {messages.length === 0 && (
@@ -317,33 +346,7 @@ export default function App() {
         {messages.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
-              {message.attachments.length > 0 && (
-                <ul className="flex flex-wrap gap-2 pb-2">
-                  {message.attachments.map((a) => (
-                    <li key={a.id}>
-                      <a
-                        href={attachmentUrl(a.id)}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="flex items-center gap-2 rounded bg-ink px-2 py-1.5 text-[13px] text-slate-300 hover:text-white sm:text-xs"
-                        title={`${a.filename} · ${Math.max(1, Math.round(a.size / 1024))} KB`}
-                      >
-                        {a.mime_type.startsWith("image/") ? (
-                          <img
-                            src={attachmentUrl(a.id)}
-                            alt={a.filename}
-                            className="h-14 w-14 rounded object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span aria-hidden>📎</span>
-                        )}
-                        <span className="max-w-40 truncate">{a.filename}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <Attachments attachments={message.attachments} urlFor={attachmentUrl} />
               <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">{message.content}</p>
             </div>
           ) : (
@@ -393,6 +396,8 @@ export default function App() {
           onRename={renameRoom}
           onDelete={removeRoom}
           onDeleteAll={removeAllRooms}
+          onShare={share}
+          onUnshare={unshare}
           username={username}
           canLogout={authMode === "password" || Boolean(logoutUrl)}
           onLogout={logout}

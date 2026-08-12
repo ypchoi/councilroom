@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Room } from "../api";
+import { shareUrl, type Room } from "../api";
 import CouncilStatus from "./CouncilStatus";
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
   onDeleteAll: () => void;
+  onShare: (id: string) => void;
+  onUnshare: (id: string) => void;
   username: string | null;
   canLogout: boolean;
   onLogout: () => void;
@@ -25,6 +27,8 @@ export default function RoomsDrawer({
   onRename,
   onDelete,
   onDeleteAll,
+  onShare,
+  onUnshare,
   username,
   canLogout,
   onLogout,
@@ -79,7 +83,7 @@ export default function RoomsDrawer({
 
         <ul className="mt-1 flex-1 space-y-1 overflow-y-auto">
           {visible.map((room) => (
-            <li key={room.id} className="flex items-center gap-1">
+            <li key={room.id} className="flex flex-wrap items-center gap-1">
               {editing === room.id ? (
                 <input
                   autoFocus
@@ -103,6 +107,16 @@ export default function RoomsDrawer({
                     {room.title}
                   </button>
                   <button
+                    className={`px-2 py-1 hover:text-slate-200 ${
+                      room.share_token ? "text-accent" : "text-slate-500"
+                    }`}
+                    onClick={() => (room.share_token ? onUnshare(room.id) : onShare(room.id))}
+                    aria-label={room.share_token ? `Stop sharing ${room.title}` : `Share ${room.title}`}
+                    title={room.share_token ? "Stop sharing" : "Create a public read-only link"}
+                  >
+                    🔗
+                  </button>
+                  <button
                     className="px-2 py-1 text-slate-500 hover:text-slate-200"
                     onClick={() => {
                       setDraft(room.title);
@@ -119,6 +133,17 @@ export default function RoomsDrawer({
                   >
                     ✕
                   </button>
+                  {room.share_token && (
+                    <a
+                      href={shareUrl(room.share_token)}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="w-full truncate px-2 pb-1 text-[12px] text-accent hover:underline"
+                      title={shareUrl(room.share_token)}
+                    >
+                      {shareUrl(room.share_token)}
+                    </a>
+                  )}
                 </>
               )}
             </li>

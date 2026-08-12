@@ -130,9 +130,23 @@ Antigravity runs headless without a file-read permission, so binary attachments 
 
 ## Rooms
 
-Each room has its own URL, `/r/<id>`, so it can be bookmarked and shared; `/` is an empty draft and
-a room is only created when you send. The room list supports search, inline rename and delete-all.
-Ids are `uuid4().hex`, and every room access is checked against its owner.
+Each room has its own URL, `/r/<id>`, so it can be bookmarked; `/` is an empty draft and a room is
+only created when you send. The room list supports search, inline rename and delete-all. Ids are
+`uuid4().hex`, and every room access is checked against its owner.
+
+## Share links
+
+The 🔗 button — in the room list and in the open room's header — publishes a room as a read-only
+page at `/s/<token>` and copies the link. The link is then shown in both places rather than hidden
+behind the button, and **Unshare** revokes it: the token stops working immediately, for everyone.
+
+Anyone holding the link can read that room's messages and open its attachments without a
+CouncilRoom account of their own — the token is the whole credential, so treat it like one. Shared
+pages are read-only: no composer, no retry, no per-member breakdown, no settings.
+
+A share link does not open a door through your front door. Behind Cloudflare Access (or any other
+proxy) the recipient still has to satisfy the proxy to reach the site at all, so to share outside
+your Access policy you need an Access bypass rule for `/s/*` and `/api/shared/*`.
 
 ## Council panel
 

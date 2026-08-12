@@ -1,4 +1,6 @@
-export type Room = { id: string; title: string; updated_at: string };
+export type Room = { id: string; title: string; updated_at: string; share_token: string | null };
+
+export type SharedRoomView = { room: { id: string; title: string; updated_at: string }; messages: Message[] };
 
 export type MessageAttachment = { id: string; filename: string; mime_type: string; size: number };
 
@@ -95,6 +97,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
+export const sharedAttachmentUrl = (token: string, id: string) => `/api/shared/${token}/attachments/${id}`;
+export const shareUrl = (token: string) => `${location.origin}/s/${token}`;
 
 export const api = {
   me: () =>
@@ -119,6 +123,11 @@ export const api = {
   renameRoom: (id: string, title: string) =>
     request<Room>(`/rooms/${id}`, { method: "PATCH", body: JSON.stringify({ title }) }),
   deleteRoom: (id: string) => request<{ ok: true }>(`/rooms/${id}`, { method: "DELETE" }),
+  shareRoom: (id: string) =>
+    request<{ share_token: string }>(`/rooms/${id}/share`, { method: "POST" }),
+  unshareRoom: (id: string) =>
+    request<{ share_token: null }>(`/rooms/${id}/share`, { method: "DELETE" }),
+  sharedRoom: (token: string) => request<SharedRoomView>(`/shared/${token}`),
 
   messages: (roomId: string) => request<Message[]>(`/rooms/${roomId}/messages`),
   upload: (roomId: string, file: File) => {

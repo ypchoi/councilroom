@@ -790,6 +790,31 @@ Room
 └── Council Runs
 ```
 
+Each room is addressable at `/r/<id>`; `/` is an empty draft and the room is only created when the
+first message is sent.
+
+## Share links
+
+A room may be published as a read-only page at `/s/<token>`.
+
+```text
+POST   /api/rooms/{id}/share     create (or return) the token
+DELETE /api/rooms/{id}/share     revoke it
+GET    /api/shared/{token}                          room title + messages
+GET    /api/shared/{token}/attachments/{id}         one of that room's attachments
+```
+
+Rules:
+
+* The token is the whole credential: `secrets.token_urlsafe(24)`, stored on the room, revocable.
+* The shared endpoints require no CouncilRoom user and expose exactly one room — attachments are
+  checked against that room, not just against the id.
+* Shared pages are read-only: no composer, no retry, no per-member breakdown, no settings.
+* Once a room is shared the link is displayed — in the room list and above the open room — not
+  hidden behind a copy action.
+* A share link does not bypass the deployment's own front door: behind a reverse proxy the proxy
+  still decides who reaches the app at all.
+
 ---
 
 # 25. Conversation Context
