@@ -11,6 +11,18 @@ function resetIn(iso: string | null): string {
   return hours < 24 ? `${hours}h${minutes % 60 ? ` ${minutes % 60}m` : ""}` : `${Math.floor(hours / 24)}d`;
 }
 
+/**
+ * claude-dashboard files each CLI's limit into a five-hour and a seven-day slot,
+ * but codex on a Pro plan reports a window that resets days out — so a "5h" chip
+ * next to "6d" reads as a second, broken metric. When the slot and its own reset
+ * disagree, the reset wins and the chip says what the window really is.
+ */
+function windowChip(slot: "5h" | "7d", iso: string | null): string {
+  if (!iso) return slot;
+  const hours = (new Date(iso).getTime() - Date.now()) / 3_600_000;
+  return hours > (slot === "5h" ? 5 : 24 * 7) ? resetIn(iso) : slot;
+}
+
 function Bar({ percent }: { percent: number }) {
   const tone = percent >= 90 ? "bg-red-500" : percent >= 70 ? "bg-amber-500" : "bg-emerald-500";
   return (
@@ -46,19 +58,21 @@ function Member({ provider }: { provider: ProviderUsage }) {
         <div className="space-y-1 pt-1.5">
           {quota.five_hour_percent !== null && (
             <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
-              <span className="w-6">5h</span>
+              <span className="w-8">{windowChip("5h", quota.five_hour_reset)}</span>
               <Bar percent={quota.five_hour_percent} />
-              <span className="w-24 text-right sm:w-20">
-                {quota.five_hour_percent}% · {resetIn(quota.five_hour_reset)}
+              <span className="w-28 text-right sm:w-24">
+                {quota.five_hour_percent}% used
+                {quota.five_hour_reset ? ` · resets in ${resetIn(quota.five_hour_reset)}` : ""}
               </span>
             </div>
           )}
           {quota.seven_day_percent !== null && (
             <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
-              <span className="w-6">7d</span>
+              <span className="w-8">{windowChip("7d", quota.seven_day_reset)}</span>
               <Bar percent={quota.seven_day_percent} />
-              <span className="w-24 text-right sm:w-20">
-                {quota.seven_day_percent}% · {resetIn(quota.seven_day_reset)}
+              <span className="w-28 text-right sm:w-24">
+                {quota.seven_day_percent}% used
+                {quota.seven_day_reset ? ` · resets in ${resetIn(quota.seven_day_reset)}` : ""}
               </span>
             </div>
           )}
