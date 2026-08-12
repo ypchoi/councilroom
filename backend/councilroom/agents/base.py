@@ -155,6 +155,7 @@ class Agent(ABC):
         *,
         attachment_supported: bool = True,
         session_id: str | None = None,
+        error: str | None = None,
     ) -> AgentResponse:
         duration = int((time.monotonic() - started) * 1000)
         if result.timed_out:
@@ -163,9 +164,11 @@ class Agent(ABC):
                 model=self.model, attachment_supported=attachment_supported, session_id=session_id,
             )
         if result.exit_code != 0 or not content.strip():
-            error = (result.stderr or result.stdout or "empty response").strip()[:2000]
+            # An adapter that understood the failure passes it in; raw stdout is
+            # the last resort, and for a JSON CLI it is a wall of envelope.
+            message = (error or result.stderr or result.stdout or "empty response").strip()[:2000]
             return AgentResponse(
-                self.name, "", duration, False, error=error, exit_code=result.exit_code,
+                self.name, "", duration, False, error=message, exit_code=result.exit_code,
                 model=self.model, attachment_supported=attachment_supported, session_id=session_id,
             )
         return AgentResponse(

@@ -17,7 +17,7 @@ import RoomsDrawer from "./components/RoomsDrawer";
 import SettingsPanel from "./components/SettingsPanel";
 import ShareBar from "./components/ShareBar";
 
-type RunState = { run: RunView | null; live: LiveStatus; stage: string };
+type RunState = { run: RunView | null; live: LiveStatus; stage: string; stageAt: number };
 
 /** Rooms are addressable at /r/<id>; "/" is a fresh, not-yet-created room. */
 const roomFromPath = (): string | null => location.pathname.match(/^\/r\/([0-9a-f]{32})$/)?.[1] ?? null;
@@ -101,7 +101,7 @@ export default function App() {
       setRuns((current) => {
         const next = { ...current };
         for (const run of loaded) {
-          if (run && !next[run.id]) next[run.id] = { run, live: {}, stage: "" };
+          if (run && !next[run.id]) next[run.id] = { run, live: {}, stage: "", stageAt: 0 };
         }
         return next;
       })
@@ -128,10 +128,10 @@ export default function App() {
   // null and the finished answer would never be loaded.
   const follow = useCallback(
     (runId: string, room: string) => {
-      setRuns((current) => ({ ...current, [runId]: { run: null, live: {}, stage: "Council deliberating…" } }));
+      setRuns((current) => ({ ...current, [runId]: { run: null, live: {}, stage: "Council deliberating…", stageAt: Date.now() } }));
       const stop = watchRun(runId, (event) => {
         setRuns((current) => {
-          const state = current[runId] ?? { run: null, live: {}, stage: "" };
+          const state = current[runId] ?? { run: null, live: {}, stage: "", stageAt: 0 };
           const live = { ...state.live };
           let stage = state.stage;
           if (event.event === "agent.started" && event.provider)
@@ -143,7 +143,9 @@ export default function App() {
           if (event.event === "peer_review.started") stage = "Peer review…";
           if (event.event === "synthesis.started") stage = `Synthesizing… Chairman: ${event.chairman}`;
           if (event.event === "council.completed" || event.event === "council.failed") stage = "";
-          return { ...current, [runId]: { ...state, live, stage } };
+          // Each stage times itself, so a long synthesis is visibly moving too.
+          const stageAt = stage === state.stage ? state.stageAt : Date.now();
+          return { ...current, [runId]: { ...state, live, stage, stageAt } };
         });
 
         if (event.event === "council.completed" || event.event === "council.failed") {
@@ -360,6 +362,7 @@ export default function App() {
               run={runFor(message)?.run ?? null}
               live={runFor(message)?.live ?? {}}
               stage={runFor(message)?.stage ?? ""}
+              stageAt={runFor(message)?.stageAt ?? 0}
               storedAnswer={message.content}
               providers={providers}
               onRetry={(chairman) => message.council_run_id && retry(message.council_run_id, chairman)}
@@ -371,6 +374,7 @@ export default function App() {
             run={pendingRun.run}
             live={pendingRun.live}
             stage={pendingRun.stage}
+            stageAt={pendingRun.stageAt}
             providers={providers}
             onRetry={(chairman) => pendingRun.run && retry(pendingRun.run.id, chairman)}
           />

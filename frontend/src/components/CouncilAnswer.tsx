@@ -11,6 +11,8 @@ type Props = {
   run: RunView | null;
   live: LiveStatus;
   stage: string;
+  /** When the current stage began, so it can time itself. */
+  stageAt?: number;
   /** Answer persisted with the message, so history renders without loading the run. */
   storedAnswer?: string;
   providers: Provider[];
@@ -26,6 +28,7 @@ export default function CouncilAnswer({
   run,
   live,
   stage,
+  stageAt,
   storedAnswer,
   providers,
   onRetry,
@@ -52,14 +55,17 @@ export default function CouncilAnswer({
       ])
     : Object.entries(live);
 
-  // A member can think for a minute; tick so the wait shows it is still moving.
-  const waiting = rows.some(([, status]) => status.state === "running");
+  // A member — or the Chairman — can think for a minute; tick so the wait shows
+  // it is still moving. The interval only runs while something is actually out.
+  const waiting = rows.some(([, status]) => status.state === "running") || (running && Boolean(stage));
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [waiting]);
+
+  const ticking = (start?: number) => (start ? ` (${Math.round((now - start) / 1000)}s)` : "");
 
   return (
     <div className="rounded-2xl border border-edge bg-panel p-3">
@@ -74,14 +80,19 @@ export default function CouncilAnswer({
             </span>
             <span className="text-[13px] text-slate-500 sm:text-xs">
               {status.state === "running"
-                ? `Thinking… ${status.started_at ? `(${Math.round((now - status.started_at) / 1000)}s)` : ""}`
+                ? `Thinking…${ticking(status.started_at)}`
                 : status.error ?? seconds(status.duration_ms)}
             </span>
           </li>
         ))}
       </ul>
 
-      {running && stage && <p className="pt-2 text-xs text-slate-500">{stage}</p>}
+      {running && stage && (
+        <p className="pt-2 text-xs text-slate-500">
+          {stage}
+          {ticking(stageAt)}
+        </p>
+      )}
 
       {run?.status === "failed" && (
         <div className="mt-3 rounded-xl border border-red-900 bg-red-950/40 p-3 text-sm">

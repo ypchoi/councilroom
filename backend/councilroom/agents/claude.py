@@ -69,6 +69,7 @@ class ClaudeAgent(Agent):
         result = await run_cli(argv, timeout=self.timeout, stdin=self.compose_prompt(prompt, attachments))
         content = result.stdout
         new_session = session_id
+        failure = None
         try:
             payload = json.loads(result.stdout)
             content = payload.get("result", "") or ""
@@ -78,7 +79,9 @@ class ClaudeAgent(Agent):
             if used:
                 self.model = self.model or used
             if payload.get("is_error"):
-                content = ""
+                # The CLI reports API failures (529, rate limits) in `result` and
+                # still exits 0. That sentence is the error — not the envelope.
+                failure, content = content or "claude reported an error", ""
         except json.JSONDecodeError:
             pass
-        return self._response(result, content, started, session_id=new_session)
+        return self._response(result, content, started, session_id=new_session, error=failure)

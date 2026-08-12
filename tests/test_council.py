@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import tempfile
 
@@ -287,6 +288,30 @@ async def test_share_link_is_public_and_revocable(client):
     assert (await client.delete(f"/api/rooms/{room['id']}/share")).status_code == 200
     assert (await client.get(f"/api/shared/{token}")).status_code == 404
     assert (await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")).status_code == 404
+
+
+async def test_a_provider_api_error_is_not_shown_as_json(monkeypatch):
+    """The claude CLI reports API failures inside its JSON envelope and still exits 0."""
+    from councilroom.agents import base, claude
+
+    payload = {
+        "is_error": True,
+        "session_id": "86b1999f",
+        "api_error_status": 529,
+        "result": "API Error: 529 Overloaded. This is a server-side issue, usually temporary",
+        "subtype": "success",
+        "type": "result",
+    }
+
+    async def fake_run_cli(*args, **kwargs):
+        return base.CliResult(exit_code=0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr(claude, "run_cli", fake_run_cli)
+    response = await claude.ClaudeAgent(timeout=5).ask("hi", [])
+
+    assert not response.success
+    assert response.error == payload["result"]
+    assert "{" not in response.error, "the JSON envelope must not reach the user"
 
 
 async def test_the_app_shell_is_never_served_stale(client):
