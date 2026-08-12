@@ -134,7 +134,8 @@ export default function App() {
           const state = current[runId] ?? { run: null, live: {}, stage: "" };
           const live = { ...state.live };
           let stage = state.stage;
-          if (event.event === "agent.started" && event.provider) live[event.provider] = { state: "running" };
+          if (event.event === "agent.started" && event.provider)
+            live[event.provider] = { state: "running", started_at: Date.now() };
           if (event.event === "agent.completed" && event.provider)
             live[event.provider] = { state: "done", duration_ms: event.duration_ms };
           if (event.event === "agent.failed" && event.provider)

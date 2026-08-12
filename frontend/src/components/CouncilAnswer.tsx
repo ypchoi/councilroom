@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AgentRunView, Provider, RunView } from "../api";
 import Markdown from "./Markdown";
 
-export type LiveStatus = Record<string, { state: "running" | "done" | "failed"; duration_ms?: number; error?: string }>;
+export type LiveStatus = Record<
+  string,
+  { state: "running" | "done" | "failed"; duration_ms?: number; error?: string; started_at?: number }
+>;
 
 type Props = {
   run: RunView | null;
@@ -49,6 +52,15 @@ export default function CouncilAnswer({
       ])
     : Object.entries(live);
 
+  // A member can think for a minute; tick so the wait shows it is still moving.
+  const waiting = rows.some(([, status]) => status.state === "running");
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [waiting]);
+
   return (
     <div className="rounded-2xl border border-edge bg-panel p-3">
       <p className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</p>
@@ -61,7 +73,9 @@ export default function CouncilAnswer({
               {status.state === "done" ? "✓" : status.state === "failed" ? "✕" : "●"}
             </span>
             <span className="text-[13px] text-slate-500 sm:text-xs">
-              {status.state === "running" ? "Thinking…" : status.error ?? seconds(status.duration_ms)}
+              {status.state === "running"
+                ? `Thinking… ${status.started_at ? `(${Math.round((now - status.started_at) / 1000)}s)` : ""}`
+                : status.error ?? seconds(status.duration_ms)}
             </span>
           </li>
         ))}
