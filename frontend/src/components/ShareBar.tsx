@@ -22,13 +22,15 @@ export default function ShareBar({ token, onUnshare }: { token: string; onUnshar
   return (
     <div className="flex items-center gap-2 border-b border-edge bg-ink/60 px-3 py-1.5 text-[13px] sm:text-xs">
       <span aria-hidden>🔗</span>
+      {/* The host never varies; the token is the part worth reading. */}
       <a
         href={url}
         target="_blank"
         rel="noreferrer noopener"
         className="flex-1 truncate text-accent hover:underline"
+        title={url}
       >
-        {url}
+        /s/{token}
       </a>
       <button className="rounded border border-edge px-2 py-1 hover:text-white" onClick={copy}>
         {copied ? "Copied" : "Copy"}
