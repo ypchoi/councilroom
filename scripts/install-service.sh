@@ -40,12 +40,24 @@ EOF
 systemctl --user daemon-reload
 systemctl --user enable --now councilroom
 
-# Without lingering, user services stop when the last session ends.
+# Without lingering, user services stop when the last login session ends.
 if [ "$(loginctl show-user "$USER" -p Linger --value)" != "yes" ]; then
   echo
-  echo "NOTE: linger is off, so this service stops when your last login session ends."
-  echo "      To keep it running across logout and reboot, run:"
-  echo "        sudo loginctl enable-linger $USER"
+  if sudo -n true 2>/dev/null; then
+    sudo loginctl enable-linger "$USER"
+  elif [ -t 0 ] && command -v sudo >/dev/null; then
+    echo "Enabling linger so the service survives logout and reboot — sudo may ask for your password."
+    sudo loginctl enable-linger "$USER" || true
+  fi
+
+  if [ "$(loginctl show-user "$USER" -p Linger --value)" = "yes" ]; then
+    echo "linger enabled: the service now starts at boot."
+  else
+    # Non-interactive shell, or sudo declined: leave the one command to run.
+    echo "NOTE: linger is off, so this service stops when your last login session ends."
+    echo "      To keep it running across logout and reboot, run:"
+    echo "        sudo loginctl enable-linger $USER"
+  fi
 fi
 
 echo

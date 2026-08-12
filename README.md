@@ -59,7 +59,8 @@ The unit sets `Restart=always`, so a crash is recovered in ~3s. It also bakes in
 where your provider CLIs actually live (`~/.local/bin`, nvm) — a systemd user service inherits
 almost no `PATH`, and without this `codex` and `agy` would not be found.
 
-**Surviving logout and reboot** needs lingering, which the installer cannot enable for you:
+**Surviving logout and reboot** needs lingering. The installer enables it for you when run from a
+terminal (sudo may ask for your password); if it could not, it prints the one command to run:
 
 ```bash
 sudo loginctl enable-linger $USER
