@@ -98,32 +98,26 @@ export default function App() {
     [roomId]
   );
 
-  async function send(content: string, attachmentIds: string[]) {
-    let target = roomId;
-    if (!target) {
-      const room = await api.createRoom();
-      setRooms((r) => [room, ...r]);
-      target = room.id;
-      setRoomId(room.id);
-    }
-    try {
-      const started = await api.ask(target, { content, attachment_ids: attachmentIds, mode });
-      setMessages((current) => [
-        ...current,
-        {
-          id: started.message_id,
-          role: "user",
-          content,
-          council_run_id: null,
-          created_at: new Date().toISOString(),
-          attachments: [],
-        },
-      ]);
-      follow(started.run_id);
-      await api.messages(target).then(setMessages);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+  async function ensureRoom(): Promise<string> {
+    if (roomId) return roomId;
+    const room = await api.createRoom();
+    setRooms((r) => [room, ...r]);
+    setRoomId(room.id);
+    return room.id;
+  }
+
+  async function send(content: string, files: File[]) {
+    // The room and the uploads only happen once the user actually sends.
+    const target = await ensureRoom();
+    const uploaded = await Promise.all(files.map((file) => api.upload(target, file)));
+    const started = await api.ask(target, {
+      content,
+      attachment_ids: uploaded.map((a) => a.id),
+      mode,
+    });
+    setError(null);
+    follow(started.run_id);
+    await api.messages(target).then(setMessages);
   }
 
   async function retry(runId: string, chairman?: string) {
@@ -290,7 +284,6 @@ export default function App() {
       {error && <p className="bg-red-950/50 px-3 py-1 text-sm text-red-300">{error}</p>}
 
       <Composer
-        roomId={roomId}
         busy={busy}
         maxFiles={settings?.attachments.max_files_per_message ?? 10}
         onSend={send}
