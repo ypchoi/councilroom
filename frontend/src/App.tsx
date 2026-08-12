@@ -123,8 +123,11 @@ export default function App() {
     };
   }, [roomId]);
 
+  // The room is passed in, never read from state: the first question in a new
+  // room creates that room in the same tick, so this closure's roomId is still
+  // null and the finished answer would never be loaded.
   const follow = useCallback(
-    (runId: string) => {
+    (runId: string, room: string) => {
       setRuns((current) => ({ ...current, [runId]: { run: null, live: {}, stage: "Council deliberating…" } }));
       const stop = watchRun(runId, (event) => {
         setRuns((current) => {
@@ -147,13 +150,13 @@ export default function App() {
           api.run(runId).then((run) =>
             setRuns((current) => ({ ...current, [runId]: { ...current[runId], run, stage: "" } }))
           );
-          if (roomId) api.messages(roomId).then(setMessages);
+          api.messages(room).then(setMessages);
           api.rooms().then(setRooms);
         }
       });
       return stop;
     },
-    [roomId]
+    []
   );
 
   async function ensureRoom(): Promise<string> {
@@ -175,17 +178,18 @@ export default function App() {
       mode,
     });
     setError(null);
-    follow(started.run_id);
+    follow(started.run_id, target);
     await api.messages(target).then(setMessages);
   }
 
   async function retry(runId: string, chairman?: string) {
+    if (!roomId) return;
     const started = await api.retry(runId, chairman);
     setRuns((current) => {
       const { [runId]: _dropped, ...rest } = current;
       return rest;
     });
-    follow(started.run_id);
+    follow(started.run_id, roomId);
   }
 
   function newRoom() {

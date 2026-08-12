@@ -22,22 +22,24 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
 
   // Files stay local until send: the room is only created when the message goes out.
   function addFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setError(null);
-    setPending((current) => [
-      ...current,
-      ...Array.from(files)
-        .slice(0, maxFiles - current.length)
-        .map((file) => ({
-          key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
-          file,
-          preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
-        })),
-    ]);
+    // Copy the list out now. Clearing an input empties the very FileList it
+    // handed us, and setPending's updater does not run until React renders —
+    // by then the picked files would be gone.
+    const picked = Array.from(files ?? []);
     // Reset every input so re-picking the same file still fires a change event.
     for (const input of [cameraInput, photoInput, fileInput]) {
       if (input.current) input.current.value = "";
     }
+    if (picked.length === 0) return;
+    setError(null);
+    setPending((current) => [
+      ...current,
+      ...picked.slice(0, maxFiles - current.length).map((file) => ({
+        key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+        file,
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+      })),
+    ]);
     setMenuOpen(false);
   }
 
