@@ -97,7 +97,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
 
 export const api = {
-  me: () => request<{ mode: string; authenticated: boolean; username: string | null }>("/auth/me"),
+  me: () =>
+    request<{
+      mode: string;
+      authenticated: boolean;
+      username: string | null;
+      logout_url: string | null;
+    }>("/auth/me"),
   login: (password: string) =>
     request<{ ok: true }>("/auth/login", { method: "POST", body: JSON.stringify({ password }) }),
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),

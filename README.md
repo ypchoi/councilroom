@@ -156,7 +156,13 @@ auth:
   trusted_proxy:
     user_header: X-Authenticated-User
     allowed_ips: []       # restrict which peers may set the header
+    logout_url: null      # where the proxy ends its session; empty hides Sign out
 ```
+
+Behind a proxy the browser session belongs to the proxy, so the app's Sign out button sends the
+user to `logout_url` — `/cdn-cgi/access/logout` for Cloudflare Access, `/oauth2/sign_out` for
+oauth2-proxy, `/logout` for Authelia. Leave it empty and the button disappears rather than
+pretending to sign anyone out.
 
 * `disabled` — only safe on localhost or behind other protection.
 * `password` — run `councilroom set-password` (stored as a pbkdf2-sha256 hash).
@@ -186,6 +192,7 @@ Publish without opening a port. Keep CouncilRoom on `127.0.0.1` and let the tunn
      trusted_proxy:
        user_header: Cf-Access-Authenticated-User-Email
        allowed_ips: ["127.0.0.1"]
+       logout_url: /cdn-cgi/access/logout
    ```
 
 4. `scripts/restart.sh`, then verify: a request without the header must return 401, and one with it

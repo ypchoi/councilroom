@@ -50,8 +50,14 @@ async def logout(request: Request):
 
 @router.get("/auth/me")
 async def me(request: Request):
+    cfg = load_config().auth
     username = security.resolve_username(request)
-    return {"mode": load_config().auth.mode, "authenticated": bool(username), "username": username}
+    return {
+        "mode": cfg.mode,
+        "authenticated": bool(username),
+        "username": username,
+        "logout_url": cfg.trusted_proxy.logout_url if cfg.mode == "proxy" else None,
+    }
 
 
 # --------------------------------------------------------------------------

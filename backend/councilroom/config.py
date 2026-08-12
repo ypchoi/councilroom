@@ -22,6 +22,10 @@ class TrustedProxy(BaseModel):
     user_header: str = "X-Authenticated-User"
     # Empty = accept the header from any peer. Set to the proxy's IPs in production.
     allowed_ips: list[str] = Field(default_factory=list)
+    # Where the proxy ends its own session, since that is what keeps a user signed
+    # in. Provider-specific — Cloudflare Access: /cdn-cgi/access/logout,
+    # oauth2-proxy: /oauth2/sign_out, Authelia: /logout. Empty hides the button.
+    logout_url: str | None = None
 
 
 class AuthConfig(BaseModel):

@@ -28,6 +28,7 @@ export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [authMode, setAuthMode] = useState<string>("disabled");
   const [username, setUsername] = useState<string | null>(null);
+  const [logoutUrl, setLogoutUrl] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(roomFromPath);
@@ -49,6 +50,7 @@ export default function App() {
       .then((me) => {
         setAuthMode(me.mode);
         setUsername(me.username);
+        setLogoutUrl(me.logout_url);
         setAuthed(me.authenticated);
       })
       .catch(() => setAuthed(false));
@@ -192,9 +194,10 @@ export default function App() {
   }
 
   async function logout() {
-    if (authMode === "proxy") {
-      // The app session is Cloudflare's; ending ours would change nothing.
-      location.href = "/cdn-cgi/access/logout";
+    if (logoutUrl) {
+      // Behind a proxy the session is the proxy's, so send the user to wherever
+      // that proxy ends it — the address is configuration, not a hardcoded path.
+      location.href = logoutUrl;
       return;
     }
     await api.logout();
@@ -391,7 +394,7 @@ export default function App() {
           onDelete={removeRoom}
           onDeleteAll={removeAllRooms}
           username={username}
-          canLogout={authMode !== "disabled"}
+          canLogout={authMode === "password" || Boolean(logoutUrl)}
           onLogout={logout}
         />
       )}
