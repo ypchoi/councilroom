@@ -125,8 +125,10 @@ which is when the room is created and the uploads happen. Attachments in a room 
 images open inline, everything else downloads under its original name.
 
 Text files are inlined into the prompt; images and PDFs are handed to providers that can read them.
-Antigravity runs headless without a file-read permission, so binary attachments are marked
-`did not receive the attachments` on its response instead of being silently dropped.
+Antigravity has no image input: shown a picture it reaches for Bash and writes a python/PIL script
+to inspect the pixels, which headless mode auto-denies — leaving the whole run empty. So it is
+never told where binary attachments are, and its response is marked `did not receive the
+attachments` rather than failing. The other two members still see them.
 
 ## Rooms
 

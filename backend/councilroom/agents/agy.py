@@ -44,9 +44,11 @@ class AgyAgent(Agent):
     async def ask(
         self, prompt: str, attachments: list[Attachment], session_id: str | None = None
     ) -> AgentResponse:
-        # In headless print mode agy auto-denies the file-read permission, so binary
-        # attachments never reach the model. Text attachments are inlined instead.
-        # ponytail: drop this once agy exposes a non-interactive read allow-rule.
+        # agy has no image input of its own: shown a picture it reaches for Bash and
+        # writes a python/PIL script to inspect the pixels, which headless mode
+        # auto-denies — and the run then produces nothing at all. So it is never told
+        # where the attachments are; it answers the question and says it could not see
+        # them. Text attachments are inlined into the prompt instead.
         binary = [a for a in attachments if a.mime_type != "text/plain"]
         # agy takes the prompt as the value of --print, so use --print=<prompt>.
         argv = [
@@ -62,12 +64,8 @@ class AgyAgent(Agent):
             # agy model ids already carry the effort tier (…-high/-medium/-low),
             # so CouncilRoom never passes --effort for this provider.
             argv += ["--model", self.model]
-        if attachments:
-            argv += ["--add-dir", str(attachments[0].path.parent)]
-
         started = time.monotonic()
-        cwd = attachments[0].path.parent if attachments else None
-        result = await run_cli(argv, timeout=self.timeout + 15, cwd=cwd)
+        result = await run_cli(argv, timeout=self.timeout + 15)
         return self._response(
             result, _extract(result.stdout), started, attachment_supported=not binary,
             session_id=_conversation_id(result.stdout) or session_id,
