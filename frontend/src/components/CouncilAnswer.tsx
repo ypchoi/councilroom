@@ -35,12 +35,26 @@ export default function CouncilAnswer({
   const answer = run?.answer || storedAnswer || "";
   const running = !answer && (!run || run.status === "running" || run.status === "pending");
 
+  // While the run streams, SSE events are all we have. Once it is loaded its own
+  // rows are the truth — otherwise a single dropped event (backgrounded phone,
+  // proxy hiccup) leaves a member on "Thinking…" beside a finished answer.
+  const rows: [string, LiveStatus[string]][] = members.length
+    ? members.map((r) => [
+        r.provider,
+        {
+          state: r.status === "completed" ? "done" : r.status === "running" ? "running" : "failed",
+          duration_ms: r.duration_ms,
+          error: r.error ?? undefined,
+        },
+      ])
+    : Object.entries(live);
+
   return (
     <div className="rounded-2xl border border-edge bg-panel p-3">
       <p className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</p>
 
       <ul className="space-y-1.5 text-[15px] sm:text-sm">
-        {Object.entries(live).map(([provider, status]) => (
+        {rows.map(([provider, status]) => (
           <li key={provider} className="flex items-center gap-2">
             <span className="w-32 truncate sm:w-28">{label(providers, provider)}</span>
             <span className={status.state === "failed" ? "text-red-400" : status.state === "done" ? "text-emerald-400" : "text-slate-400"}>
