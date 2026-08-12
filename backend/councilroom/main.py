@@ -39,7 +39,11 @@ def create_app() -> FastAPI:
             candidate = (STATIC_DIR / path).resolve()
             if path and candidate.is_file() and candidate.is_relative_to(STATIC_DIR.resolve()):
                 return FileResponse(candidate)
-            return FileResponse(STATIC_DIR / "index.html")
+            # The shell names hashed asset files, so a cached copy from before a
+            # rebuild points at files that no longer exist. Always revalidate it.
+            return FileResponse(
+                STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"}
+            )
     else:
 
         @app.get("/")

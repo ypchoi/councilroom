@@ -1,5 +1,6 @@
 // App-shell cache so CouncilRoom opens instantly as a PWA. API calls always hit the network.
-const CACHE = "councilroom-v1";
+// Bump this to drop every client's old cache; activate deletes any other name.
+const CACHE = "councilroom-v2";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/icon.svg"])));
@@ -19,8 +20,12 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        // Never cache a 404 or an auth redirect: a poisoned entry outlives the
+        // problem and gets served back as if it were the app.
+        if (res.ok && !res.redirected) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))

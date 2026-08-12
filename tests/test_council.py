@@ -289,6 +289,14 @@ async def test_share_link_is_public_and_revocable(client):
     assert (await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")).status_code == 404
 
 
+async def test_the_app_shell_is_never_served_stale(client):
+    """It names hashed bundles, so a cached copy survives a rebuild pointing at 404s."""
+    response = await client.get("/")
+    if response.status_code == 404:
+        pytest.skip("frontend not built")
+    assert response.headers.get("cache-control") == "no-cache"
+
+
 async def test_a_first_visit_may_arrive_in_parallel(client):
     """A new identity's browser fires several API calls at once, all finding no user yet."""
     users = await asyncio.gather(
