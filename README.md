@@ -173,6 +173,23 @@ pretending to sign anyone out.
 The proxy check uses the real peer address, not `X-Forwarded-For`, so `councilroom serve` runs
 uvicorn with proxy headers disabled.
 
+### Header names by proxy
+
+CouncilRoom only needs to know which header carries the identity and where that proxy ends its
+session — nothing else is provider-specific.
+
+| Proxy | `user_header` | `logout_url` |
+|---|---|---|
+| Cloudflare Access | `Cf-Access-Authenticated-User-Email` | `/cdn-cgi/access/logout` |
+| oauth2-proxy | `X-Auth-Request-Email` | `/oauth2/sign_out` |
+| Authelia | `Remote-User` (or `Remote-Email`) | `/logout` |
+| Authentik | `X-authentik-email` | `/outpost.goauthentik.io/sign_out` |
+| nginx `auth_request` | whatever you set | (leave empty) |
+
+Whatever the proxy, set `allowed_ips` to its address and keep the app bound to `127.0.0.1`: the
+header is trusted because of where it comes from, so an unreachable port and a peer check are what
+make it safe. Each distinct identity string becomes its own CouncilRoom user with its own rooms.
+
 ### Example: Cloudflare Tunnel + Access
 
 Publish without opening a port. Keep CouncilRoom on `127.0.0.1` and let the tunnel reach it.
