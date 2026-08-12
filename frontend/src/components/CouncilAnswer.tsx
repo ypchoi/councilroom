@@ -7,7 +7,10 @@ type Props = {
   run: RunView | null;
   live: LiveStatus;
   stage: string;
+  /** Answer persisted with the message, so history renders without loading the run. */
+  storedAnswer?: string;
   providers: Provider[];
+  onExpand?: () => void;
   onRetry: (chairman?: string) => void;
 };
 
@@ -16,11 +19,20 @@ const label = (providers: Provider[], name: string) =>
 
 const seconds = (ms?: number) => (ms ? `${(ms / 1000).toFixed(1)}s` : "");
 
-export default function CouncilAnswer({ run, live, stage, providers, onRetry }: Props) {
+export default function CouncilAnswer({
+  run,
+  live,
+  stage,
+  storedAnswer,
+  providers,
+  onExpand,
+  onRetry,
+}: Props) {
   const [openResponses, setOpenResponses] = useState(false);
   const [openReviews, setOpenReviews] = useState(false);
   const members: AgentRunView[] = run?.responses.filter((r) => r.role === "member") ?? [];
-  const running = !run || run.status === "running" || run.status === "pending";
+  const answer = run?.answer || storedAnswer || "";
+  const running = !answer && (!run || run.status === "running" || run.status === "pending");
 
   return (
     <div className="rounded-2xl border border-edge bg-panel p-3">
@@ -62,18 +74,27 @@ export default function CouncilAnswer({ run, live, stage, providers, onRetry }: 
         </div>
       )}
 
-      {run?.answer && (
+      {answer && (
         <div className="mt-3 border-t border-edge pt-3">
           <p className="pb-1 text-xs tracking-widest text-slate-500">COUNCIL ANSWER</p>
-          <p className="whitespace-pre-wrap text-[17px] leading-relaxed sm:text-[15px]">{run.answer}</p>
+          <p className="whitespace-pre-wrap text-[17px] leading-relaxed sm:text-[15px]">{answer}</p>
         </div>
       )}
 
-      {members.length > 0 && (
+      {(members.length > 0 || (answer && onExpand)) && (
         <div className="mt-3 border-t border-edge pt-2 text-[15px] sm:text-sm">
-          <button className="text-slate-400" onClick={() => setOpenResponses((v) => !v)}>
+          <button
+            className="text-slate-400"
+            onClick={() => {
+              if (!openResponses && members.length === 0) onExpand?.();
+              setOpenResponses((v) => !v);
+            }}
+          >
             {openResponses ? "▼" : "▸"} Individual responses
           </button>
+          {openResponses && members.length === 0 && (
+            <p className="pt-2 text-xs text-slate-500">loading…</p>
+          )}
           {openResponses &&
             members.map((r) => (
               <div key={r.provider} className="mt-2 rounded-xl bg-ink p-2">

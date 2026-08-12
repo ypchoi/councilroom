@@ -65,6 +65,21 @@ export default function App() {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, runs]);
 
+  // Phones suspend the SSE stream in the background; resync whatever finished meanwhile.
+  useEffect(() => {
+    const resync = () => {
+      if (document.visibilityState !== "visible" || !roomId) return;
+      api.messages(roomId).then(setMessages).catch(() => {});
+      api.rooms().then(setRooms).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("focus", resync);
+    return () => {
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("focus", resync);
+    };
+  }, [roomId]);
+
   const follow = useCallback(
     (runId: string) => {
       setRuns((current) => ({ ...current, [runId]: { run: null, live: {}, stage: "Council deliberating…" } }));
@@ -118,6 +133,12 @@ export default function App() {
     setError(null);
     follow(started.run_id);
     await api.messages(target).then(setMessages);
+  }
+
+  async function loadRun(runId: string) {
+    if (runs[runId]?.run) return;
+    const run = await api.run(runId);
+    setRuns((current) => ({ ...current, [runId]: { run, live: {}, stage: "" } }));
   }
 
   async function retry(runId: string, chairman?: string) {
@@ -264,7 +285,9 @@ export default function App() {
               run={runFor(message)?.run ?? null}
               live={runFor(message)?.live ?? {}}
               stage={runFor(message)?.stage ?? ""}
+              storedAnswer={message.content}
               providers={providers}
+              onExpand={() => message.council_run_id && loadRun(message.council_run_id)}
               onRetry={(chairman) => message.council_run_id && retry(message.council_run_id, chairman)}
             />
           )
