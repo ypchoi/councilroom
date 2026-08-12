@@ -380,9 +380,17 @@ async def _shared_room(s, token: str) -> db.Room:
 async def shared_room(token: str):
     async with db.session() as s:
         room = await _shared_room(s, token)
+        messages = await _messages(s, room.id)
+        # The individual answers belong to the conversation, so a shared room
+        # carries them too — a reader sees what each member said, not only the
+        # Chairman's synthesis.
+        runs = (
+            await s.execute(select(db.CouncilRun).where(db.CouncilRun.room_id == room.id))
+        ).scalars().all()
         return {
             "room": {"id": room.id, "title": room.title, "updated_at": room.updated_at},
-            "messages": await _messages(s, room.id),
+            "messages": messages,
+            "runs": {run.id: await _run_json(s, run) for run in runs},
         }
 
 
@@ -465,18 +473,14 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
     return {"message_id": message.id, "run_id": run.id, "mode": mode, "chairman": chairman}
 
 
-@router.get("/runs/{run_id}")
-async def get_run(run_id: str, user: db.User = CurrentUser):
-    async with db.session() as s:
-        run = await s.get(db.CouncilRun, run_id)
-        if run is None or run.user_id != user.id:
-            raise HTTPException(status_code=404, detail="run not found")
-        agent_runs = (
-            await s.execute(select(db.AgentRun).where(db.AgentRun.council_run_id == run_id))
-        ).scalars().all()
-        reviews = (
-            await s.execute(select(db.PeerReview).where(db.PeerReview.council_run_id == run_id))
-        ).scalars().all()
+async def _run_json(s, run: db.CouncilRun) -> dict:
+    run_id = run.id
+    agent_runs = (
+        await s.execute(select(db.AgentRun).where(db.AgentRun.council_run_id == run_id))
+    ).scalars().all()
+    reviews = (
+        await s.execute(select(db.PeerReview).where(db.PeerReview.council_run_id == run_id))
+    ).scalars().all()
     return {
         "id": run.id,
         "room_id": run.room_id,
@@ -488,7 +492,11 @@ async def get_run(run_id: str, user: db.User = CurrentUser):
         "error": run.error,
         "responses": [
             {
-                "provider": a.provider, "role": a.role, "status": a.status, "model": a.model,
+                # The display name travels with the row: a shared room has no
+                # provider list to look it up in.
+                "provider": a.provider,
+                "label": getattr(AGENT_CLASSES.get(a.provider), "label", a.provider),
+                "role": a.role, "status": a.status, "model": a.model,
                 "content": a.content, "error": a.error, "duration_ms": a.duration_ms,
                 "attachment_supported": a.attachment_supported,
             }
@@ -499,6 +507,15 @@ async def get_run(run_id: str, user: db.User = CurrentUser):
             for p in reviews
         ],
     }
+
+
+@router.get("/runs/{run_id}")
+async def get_run(run_id: str, user: db.User = CurrentUser):
+    async with db.session() as s:
+        run = await s.get(db.CouncilRun, run_id)
+        if run is None or run.user_id != user.id:
+            raise HTTPException(status_code=404, detail="run not found")
+        return await _run_json(s, run)
 
 
 class RetryBody(BaseModel):

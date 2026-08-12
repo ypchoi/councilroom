@@ -1,6 +1,10 @@
 export type Room = { id: string; title: string; updated_at: string; share_token: string | null };
 
-export type SharedRoomView = { room: { id: string; title: string; updated_at: string }; messages: Message[] };
+export type SharedRoomView = {
+  room: { id: string; title: string; updated_at: string };
+  messages: Message[];
+  runs: Record<string, RunView>;
+};
 
 export type MessageAttachment = { id: string; filename: string; mime_type: string; size: number };
 
@@ -15,6 +19,7 @@ export type Message = {
 
 export type AgentRunView = {
   provider: string;
+  label: string;
   role: "member" | "chairman";
   status: string;
   model: string | null;

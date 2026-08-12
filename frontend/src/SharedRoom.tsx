@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { api, sharedAttachmentUrl, type SharedRoomView } from "./api";
 import Attachments from "./components/Attachments";
 import Markdown from "./components/Markdown";
+import MemberResponses from "./components/MemberResponses";
 
-/** Read-only view of a shared room: no auth, no composer, no per-member breakdown. */
+/** Read-only view of a shared room: no auth, no composer, no retry. */
 export default function SharedRoom({ token }: { token: string }) {
   const [view, setView] = useState<SharedRoomView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,9 @@ export default function SharedRoom({ token }: { token: string }) {
           ) : (
             <div key={message.id} className="rounded-2xl border border-edge bg-panel px-3.5 py-2.5">
               <Markdown>{message.content}</Markdown>
+              <MemberResponses
+                run={(message.council_run_id && view.runs[message.council_run_id]) || null}
+              />
             </div>
           )
         )}

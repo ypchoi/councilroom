@@ -275,6 +275,13 @@ async def test_share_link_is_public_and_revocable(client):
     shared = (await client.get(f"/api/shared/{token}")).json()
     assert shared["room"]["title"] == "What colour is the sky?"
     assert [m["role"] for m in shared["messages"]] == ["user", "council"]
+
+    # A reader sees what each member said, not only the Chairman's synthesis.
+    council = next(m for m in shared["messages"] if m["role"] == "council")
+    run = shared["runs"][council["council_run_id"]]
+    members = [r for r in run["responses"] if r["role"] == "member"]
+    assert {r["provider"] for r in members} == {"claude", "codex", "agy"}
+    assert all(r["content"] and r["label"] for r in members)
     fetched = await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")
     assert fetched.status_code == 200 and fetched.content == b"the sky is green"
 
