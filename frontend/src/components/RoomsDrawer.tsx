@@ -1,0 +1,131 @@
+import { useState } from "react";
+import type { Room } from "../api";
+import CouncilStatus from "./CouncilStatus";
+
+type Props = {
+  rooms: Room[];
+  activeId: string | null;
+  onClose: () => void;
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+  onRename: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+  onDeleteAll: () => void;
+};
+
+export default function RoomsDrawer({
+  rooms,
+  activeId,
+  onClose,
+  onSelect,
+  onCreate,
+  onRename,
+  onDelete,
+  onDeleteAll,
+}: Props) {
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
+  const visible = query.trim()
+    ? rooms.filter((r) => r.title.toLowerCase().includes(query.trim().toLowerCase()))
+    : rooms;
+
+  function commit(id: string) {
+    const title = draft.trim();
+    if (title) onRename(id, title);
+    setEditing(null);
+  }
+
+  return (
+    <div className="fixed inset-0 z-10 bg-black/60" onClick={onClose}>
+      <nav
+        className="flex h-full w-80 max-w-[85vw] flex-col bg-panel p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="rounded bg-accent p-2 text-sm font-medium text-ink" onClick={onCreate}>
+          New room
+        </button>
+
+        <input
+          className="mt-2 w-full rounded bg-ink px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-accent"
+          placeholder="Search rooms…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+
+        <div className="flex items-center justify-between px-1 pt-2 text-[11px] text-slate-500">
+          <span>
+            {visible.length} room{visible.length === 1 ? "" : "s"}
+            {query.trim() && ` of ${rooms.length}`}
+          </span>
+          {rooms.length > 0 && (
+            <button
+              className="text-red-400 hover:underline disabled:opacity-40"
+              onClick={() => {
+                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
+              }}
+            >
+              Delete all
+            </button>
+          )}
+        </div>
+
+        <ul className="mt-1 flex-1 space-y-1 overflow-y-auto">
+          {visible.map((room) => (
+            <li key={room.id} className="flex items-center gap-1">
+              {editing === room.id ? (
+                <input
+                  autoFocus
+                  className="flex-1 rounded bg-ink px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-accent"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={() => commit(room.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commit(room.id);
+                    if (e.key === "Escape") setEditing(null);
+                  }}
+                />
+              ) : (
+                <>
+                  <button
+                    className={`flex-1 truncate rounded px-2 py-2 text-left text-sm ${
+                      room.id === activeId ? "bg-edge" : ""
+                    }`}
+                    onClick={() => onSelect(room.id)}
+                  >
+                    {room.title}
+                  </button>
+                  <button
+                    className="px-1 text-slate-500 hover:text-slate-200"
+                    onClick={() => {
+                      setDraft(room.title);
+                      setEditing(room.id);
+                    }}
+                    aria-label={`Rename ${room.title}`}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="px-1 text-slate-500 hover:text-red-400"
+                    onClick={() => onDelete(room.id)}
+                    aria-label={`Delete ${room.title}`}
+                  >
+                    ✕
+                  </button>
+                </>
+              )}
+            </li>
+          ))}
+          {visible.length === 0 && (
+            <li className="px-2 py-4 text-center text-xs text-slate-600">no matching rooms</li>
+          )}
+        </ul>
+
+        <div className="max-h-[45%] shrink-0 overflow-y-auto">
+          <CouncilStatus />
+        </div>
+      </nav>
+    </div>
+  );
+}

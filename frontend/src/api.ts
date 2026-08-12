@@ -63,6 +63,8 @@ export type ProviderUsage = {
   available: boolean;
   authenticated: boolean;
   account: string | null;
+  model: string | null;
+  effort: string | null;
   quota: {
     five_hour_percent: number | null;
     seven_day_percent: number | null;

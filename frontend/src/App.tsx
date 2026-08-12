@@ -10,7 +10,7 @@ import {
 } from "./api";
 import Composer from "./components/Composer";
 import CouncilAnswer, { type LiveStatus } from "./components/CouncilAnswer";
-import CouncilStatus from "./components/CouncilStatus";
+import RoomsDrawer from "./components/RoomsDrawer";
 import SettingsPanel from "./components/SettingsPanel";
 
 type RunState = { run: RunView | null; live: LiveStatus; stage: string };
@@ -142,6 +142,19 @@ export default function App() {
     setMessages([]);
     setRuns({});
     setDrawer(false);
+  }
+
+  async function renameRoom(id: string, title: string) {
+    await api.renameRoom(id, title);
+    setRooms((current) => current.map((r) => (r.id === id ? { ...r, title } : r)));
+  }
+
+  async function removeAllRooms() {
+    await Promise.all(rooms.map((r) => api.deleteRoom(r.id)));
+    setRooms([]);
+    setRoomId(null);
+    setMessages([]);
+    setRuns({});
   }
 
   async function removeRoom(id: string) {
@@ -284,42 +297,20 @@ export default function App() {
       />
 
       {drawer && (
-        <div className="fixed inset-0 z-10 bg-black/60" onClick={() => setDrawer(false)}>
-          <nav
-            className="h-full w-72 overflow-y-auto bg-panel p-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button className="mb-3 w-full rounded bg-accent p-2 text-sm font-medium text-ink" onClick={newRoom}>
-              New room
-            </button>
-            <ul className="space-y-1">
-              {rooms.map((room) => (
-                <li key={room.id} className="flex items-center gap-1">
-                  <button
-                    className={`flex-1 truncate rounded px-2 py-2 text-left text-sm ${
-                      room.id === roomId ? "bg-edge" : ""
-                    }`}
-                    onClick={() => {
-                      setRoomId(room.id);
-                      setRuns({});
-                      setDrawer(false);
-                    }}
-                  >
-                    {room.title}
-                  </button>
-                  <button
-                    className="px-1 text-slate-500 hover:text-red-400"
-                    onClick={() => removeRoom(room.id)}
-                    aria-label={`Delete ${room.title}`}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <CouncilStatus />
-          </nav>
-        </div>
+        <RoomsDrawer
+          rooms={rooms}
+          activeId={roomId}
+          onClose={() => setDrawer(false)}
+          onSelect={(id) => {
+            setRoomId(id);
+            setRuns({});
+            setDrawer(false);
+          }}
+          onCreate={newRoom}
+          onRename={renameRoom}
+          onDelete={removeRoom}
+          onDeleteAll={removeAllRooms}
+        />
       )}
 
       {showSettings && (

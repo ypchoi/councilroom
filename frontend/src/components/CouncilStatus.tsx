@@ -36,6 +36,10 @@ function Member({ provider }: { provider: ProviderUsage }) {
       </div>
 
       {provider.account && <p className="truncate pt-1 text-[11px] text-slate-400">{provider.account}</p>}
+      <p className="pt-0.5 text-[11px] text-slate-500">
+        model: {provider.model ?? "default"}
+        {provider.effort ? ` · effort: ${provider.effort}` : ""}
+      </p>
 
       {quota ? (
         <div className="space-y-1 pt-1.5">

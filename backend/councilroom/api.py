@@ -108,6 +108,8 @@ async def usage_panel(user: db.User = CurrentUser):
             "available": available,
             "authenticated": authenticated,
             "account": await agent.account() if authenticated else None,
+            "model": agent.model,
+            "effort": agent.effort,
             "quota": quotas.get(name),
             "calls": total,
             "failures": total - ok,
