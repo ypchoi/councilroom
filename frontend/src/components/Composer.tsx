@@ -10,7 +10,7 @@ type Props = {
 
 export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
   const [text, setText] = useState("");
-  const [pending, setPending] = useState<MessageAttachment[]>([]);
+  const [pending, setPending] = useState<{ att: MessageAttachment; preview?: string }[]>([]);
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -23,7 +23,8 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
       setUploading((n) => n + 1);
       try {
         const uploaded = await api.upload(roomId, file);
-        setPending((current) => [...current, uploaded]);
+        const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+        setPending((current) => [...current, { att: uploaded, preview }]);
       } catch (e) {
         setError((e as Error).message);
       } finally {
@@ -35,7 +36,8 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
 
   function send() {
     if (busy || (!text.trim() && pending.length === 0)) return;
-    onSend(text.trim(), pending.map((a) => a.id));
+    onSend(text.trim(), pending.map((p) => p.att.id));
+    pending.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
     setText("");
     setPending([]);
   }
@@ -45,13 +47,23 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
       {error && <p className="pb-2 text-xs text-red-400">{error}</p>}
       {pending.length > 0 && (
         <ul className="flex flex-wrap gap-2 pb-2">
-          {pending.map((a) => (
-            <li key={a.id} className="flex items-center gap-2 rounded bg-ink px-2 py-1 text-xs">
-              <span className="max-w-40 truncate">{a.filename}</span>
+          {pending.map(({ att, preview }) => (
+            <li key={att.id} className="flex items-center gap-2 rounded bg-ink px-2 py-1 text-xs">
+              {preview ? (
+                <img src={preview} alt={att.filename} className="h-10 w-10 rounded object-cover" />
+              ) : (
+                <span aria-hidden>📎</span>
+              )}
+              <span className="max-w-40 truncate">{att.filename}</span>
               <button
                 className="text-slate-500 hover:text-red-400"
-                onClick={() => setPending((c) => c.filter((x) => x.id !== a.id))}
-                aria-label={`Remove ${a.filename}`}
+                onClick={() =>
+                  setPending((c) => {
+                    if (preview) URL.revokeObjectURL(preview);
+                    return c.filter((x) => x.att.id !== att.id);
+                  })
+                }
+                aria-label={`Remove ${att.filename}`}
               >
                 ✕
               </button>
