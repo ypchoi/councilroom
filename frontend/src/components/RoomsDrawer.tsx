@@ -54,7 +54,7 @@ export default function RoomsDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <button className="rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm" onClick={onCreate}>
-          New room
+          ✏️ New room
         </button>
 
         <input
