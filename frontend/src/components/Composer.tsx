@@ -14,6 +14,10 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
   const [pending, setPending] = useState<Pending[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Three separate inputs: Android/iOS pick the surface from accept + capture.
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Files stay local until send: the room is only created when the message goes out.
@@ -30,7 +34,11 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
           preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
         })),
     ]);
-    if (fileInput.current) fileInput.current.value = "";
+    // Reset every input so re-picking the same file still fires a change event.
+    for (const input of [cameraInput, photoInput, fileInput]) {
+      if (input.current) input.current.value = "";
+    }
+    setMenuOpen(false);
   }
 
   function remove(key: string) {
@@ -61,6 +69,11 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
     <div className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
       {pending.length > 0 && (
+        <p className="pb-1 text-[12px] text-slate-500">
+          {pending.length} / {maxFiles} attached
+        </p>
+      )}
+      {pending.length > 0 && (
         <ul className="flex flex-wrap gap-2 pb-2">
           {pending.map(({ key, file, preview }) => (
             <li
@@ -85,14 +98,54 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
         </ul>
       )}
       <div className="flex items-end gap-2">
-        <button
-          className="h-11 w-11 shrink-0 rounded-full border border-edge text-2xl leading-none disabled:opacity-40 sm:h-10 sm:w-10 sm:text-xl"
-          onClick={() => fileInput.current?.click()}
-          disabled={pending.length >= maxFiles}
-          aria-label="Add attachment"
-        >
-          ＋
-        </button>
+        <div className="relative shrink-0">
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <ul className="absolute bottom-13 left-0 z-20 w-40 overflow-hidden rounded-xl border border-edge bg-panel text-[15px] shadow-lg sm:text-sm">
+                {[
+                  { label: "📷  Camera", ref: cameraInput },
+                  { label: "🖼️  Photos", ref: photoInput },
+                  { label: "📎  Files", ref: fileInput },
+                ].map(({ label, ref }) => (
+                  <li key={label}>
+                    <button
+                      className="w-full px-3 py-2.5 text-left hover:bg-edge"
+                      onClick={() => ref.current?.click()}
+                    >
+                      {label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <button
+            className="h-11 w-11 rounded-full border border-edge text-2xl leading-none disabled:opacity-40 sm:h-10 sm:w-10 sm:text-xl"
+            onClick={() => setMenuOpen((open) => !open)}
+            disabled={pending.length >= maxFiles}
+            aria-label="Add attachment"
+            aria-expanded={menuOpen}
+          >
+            ＋
+          </button>
+        </div>
+        <input
+          ref={cameraInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => addFiles(e.target.files)}
+        />
+        <input
+          ref={photoInput}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => addFiles(e.target.files)}
+        />
         <input
           ref={fileInput}
           type="file"
