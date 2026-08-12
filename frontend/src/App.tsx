@@ -10,6 +10,7 @@ import {
 } from "./api";
 import Composer from "./components/Composer";
 import CouncilAnswer, { type LiveStatus } from "./components/CouncilAnswer";
+import CouncilStatus from "./components/CouncilStatus";
 import SettingsPanel from "./components/SettingsPanel";
 
 type RunState = { run: RunView | null; live: LiveStatus; stage: string };
@@ -311,6 +312,7 @@ export default function App() {
                 </li>
               ))}
             </ul>
+            <CouncilStatus />
           </nav>
         </div>
       )}

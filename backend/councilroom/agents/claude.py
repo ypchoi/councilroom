@@ -22,9 +22,24 @@ class ClaudeAgent(Agent):
         except (json.JSONDecodeError, AttributeError):
             return "logged in" in result.stdout.lower()
 
+    async def account(self) -> str | None:
+        result = await run_cli([self.executable, "auth", "status"], timeout=30)
+        if result.exit_code != 0:
+            return None
+        try:
+            status = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return None
+        parts = [status.get("email"), status.get("subscriptionType")]
+        return " · ".join(p for p in parts if p) or None
+
     async def version(self) -> str | None:
         result = await run_cli([self.executable, "--version"], timeout=30)
         return result.stdout.strip() or None if result.exit_code == 0 else None
+
+    async def list_models(self) -> list[str]:
+        # The CLI has no list command; these are the aliases it documents for --model.
+        return ["fable", "opus", "sonnet", "haiku"]
 
     async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse:
         argv = [self.executable, "-p", "--output-format", "json"]

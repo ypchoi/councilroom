@@ -97,8 +97,11 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
           {providers.map((p) => (
             <div key={p.name} className="pb-3">
               <p className="text-sm">{p.label}</p>
-              <select
+              {/* Free text with suggestions: only agy can enumerate its models. */}
+              <input
+                list={`models-${p.name}`}
                 className="mt-1 w-full rounded bg-ink p-2 text-sm"
+                placeholder="Default"
                 value={settings.providers[p.name]?.model ?? ""}
                 onChange={(e) =>
                   patch({
@@ -108,15 +111,13 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
                     },
                   })
                 }
-              >
-                <option value="">Default</option>
+              />
+              <datalist id={`models-${p.name}`}>
                 {p.models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
+                  <option key={m} value={m} />
                 ))}
-              </select>
-              {p.name === "agy" && (
+              </datalist>
+              {p.name !== "claude" && (
                 <select
                   className="mt-1 w-full rounded bg-ink p-2 text-sm"
                   value={settings.providers[p.name]?.effort ?? ""}

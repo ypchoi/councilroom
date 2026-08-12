@@ -11,9 +11,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import case, delete, func, select
 
-from . import council, db, security
+from . import council, db, security, usage
 from .agents.base import Attachment as AgentAttachment
 from .agents.registry import AGENT_CLASSES, build_agent
 from .config import UPLOADS_DIR, Config, load_config, save_config
@@ -73,6 +73,53 @@ async def providers(user: db.User = CurrentUser):
         }
 
     return await asyncio.gather(*[describe(name) for name in AGENT_CLASSES])
+
+
+@router.get("/usage")
+async def usage_panel(user: db.User = CurrentUser):
+    """Per-member status: account, subscription quota (when a delegate reports it), our own calls."""
+    cfg = load_config()
+    quotas = await usage.quota()
+
+    async with db.session() as s:
+        rows = (
+            await s.execute(
+                select(
+                    db.AgentRun.provider,
+                    func.count(db.AgentRun.id),
+                    func.sum(case((db.AgentRun.status == "completed", 1), else_=0)),
+                    func.max(db.AgentRun.completed_at),
+                )
+                .join(db.CouncilRun, db.CouncilRun.id == db.AgentRun.council_run_id)
+                .where(db.CouncilRun.user_id == user.id)
+                .group_by(db.AgentRun.provider)
+            )
+        ).all()
+    counts = {provider: (total, ok or 0, last) for provider, total, ok, last in rows}
+
+    async def describe(name: str):
+        agent = build_agent(name, cfg)
+        available = await agent.check_available()
+        authenticated = await agent.check_authenticated() if available else False
+        total, ok, last = counts.get(name, (0, 0, None))
+        return {
+            "name": name,
+            "label": agent.label,
+            "available": available,
+            "authenticated": authenticated,
+            "account": await agent.account() if authenticated else None,
+            "quota": quotas.get(name),
+            "calls": total,
+            "failures": total - ok,
+            "last_used": last,
+            "is_member": name in cfg.council.members,
+            "is_chairman": name == cfg.council.chairman,
+        }
+
+    return {
+        "providers": await asyncio.gather(*[describe(name) for name in AGENT_CLASSES]),
+        "quota_source": "claude-dashboard" if quotas else None,
+    }
 
 
 @router.get("/config")

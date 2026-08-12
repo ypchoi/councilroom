@@ -21,6 +21,11 @@ class CodexAgent(Agent):
         # codex prints the status line on stderr.
         return result.exit_code == 0 and "logged in" in (result.stdout + result.stderr).lower()
 
+    async def account(self) -> str | None:
+        result = await run_cli([self.executable, "login", "status"], timeout=30)
+        line = (result.stdout + result.stderr).strip().splitlines()
+        return line[0] if result.exit_code == 0 and line else None
+
     async def version(self) -> str | None:
         result = await run_cli([self.executable, "--version"], timeout=30)
         return result.stdout.strip() or None if result.exit_code == 0 else None
@@ -34,6 +39,8 @@ class CodexAgent(Agent):
                 argv += ["--image", str(img.path)]
             if self.model:
                 argv += ["--model", self.model]
+            if self.effort:  # codex has no --effort flag; it is a config key
+                argv += ["-c", f"model_reasoning_effort={self.effort}"]
             argv += [
                 "--skip-git-repo-check", "--ephemeral",
                 "--color", "never",

@@ -109,6 +109,10 @@ class Agent(ABC):
     async def list_models(self) -> list[str]:
         return []
 
+    async def account(self) -> str | None:
+        """Signed-in identity/plan, when the CLI reports one. Never credentials."""
+        return None
+
     # --- execution ---------------------------------------------------------
     @abstractmethod
     async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse: ...

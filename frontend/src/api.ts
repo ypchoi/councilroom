@@ -51,6 +51,28 @@ export type Settings = {
   auth: { mode: string };
 };
 
+export type ProviderUsage = {
+  name: string;
+  label: string;
+  available: boolean;
+  authenticated: boolean;
+  account: string | null;
+  quota: {
+    five_hour_percent: number | null;
+    seven_day_percent: number | null;
+    five_hour_reset: string | null;
+    seven_day_reset: string | null;
+    plan: string | null;
+  } | null;
+  calls: number;
+  failures: number;
+  last_used: string | null;
+  is_member: boolean;
+  is_chairman: boolean;
+};
+
+export type UsageReport = { providers: ProviderUsage[]; quota_source: string | null };
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     headers: init?.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
@@ -70,6 +92,7 @@ export const api = {
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
 
   providers: () => request<Provider[]>("/providers"),
+  usage: () => request<UsageReport>("/usage"),
   settings: () => request<Settings>("/config"),
   saveSettings: (body: Partial<Settings>) =>
     request<Settings>("/config", { method: "PUT", body: JSON.stringify(body) }),
