@@ -114,8 +114,8 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
           <h3 className="pb-1 text-xs tracking-widest text-slate-500">PROVIDER SETTINGS</h3>
           <Hint>
             Model: leave empty to use whatever the CLI defaults to. Suggestions come from the CLI
-            when it can list its models. Effort sets reasoning depth (higher = slower, more tokens);
-            the Claude CLI has no such flag.
+            when it can list its models. Effort is only shown for Codex — Claude has no such flag,
+            and Antigravity encodes the effort tier in the model id itself (…-high / -medium / -low).
           </Hint>
           {providers.map((p) => (
             <div key={p.name} className="pb-3">
@@ -140,7 +140,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
                   <option key={m} value={m} />
                 ))}
               </datalist>
-              {p.name !== "claude" && (
+              {p.name === "codex" && (
                 <select
                   className="mt-1 w-full rounded bg-ink p-2 text-sm"
                   value={settings.providers[p.name]?.effort ?? ""}

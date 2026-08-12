@@ -74,7 +74,7 @@ class Config(BaseModel):
         default_factory=lambda: {
             "claude": ProviderConfig(),
             "codex": ProviderConfig(),
-            "agy": ProviderConfig(effort="high"),
+            "agy": ProviderConfig(),
         }
     )
 

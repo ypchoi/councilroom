@@ -59,9 +59,9 @@ class AgyAgent(Agent):
         if session_id:
             argv += ["--conversation", session_id]
         if self.model:
+            # agy model ids already carry the effort tier (…-high/-medium/-low),
+            # so CouncilRoom never passes --effort for this provider.
             argv += ["--model", self.model]
-        if self.effort:
-            argv += ["--effort", self.effort]
         if attachments:
             argv += ["--add-dir", str(attachments[0].path.parent)]
 
