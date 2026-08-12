@@ -131,7 +131,7 @@ export default function CouncilAnswer({
               }`}
               onClick={() => setOpen(open === r.provider ? null : r.provider)}
             >
-              {open === r.provider ? "▼" : "▸"} {label(providers, r.provider)} response
+              {open === r.provider ? "▼" : "▸"} {label(providers, r.provider)}
             </button>
           ))}
         </div>
