@@ -11,6 +11,9 @@ type Props = {
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
   onDeleteAll: () => void;
+  username: string | null;
+  canLogout: boolean;
+  onLogout: () => void;
 };
 
 export default function RoomsDrawer({
@@ -22,6 +25,9 @@ export default function RoomsDrawer({
   onRename,
   onDelete,
   onDeleteAll,
+  username,
+  canLogout,
+  onLogout,
 }: Props) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -122,7 +128,21 @@ export default function RoomsDrawer({
           )}
         </ul>
 
-        <div className="max-h-[45%] shrink-0 overflow-y-auto">
+        {username && (
+          <div className="flex shrink-0 items-center gap-2 border-t border-edge pt-2 text-[13px] text-slate-400 sm:text-xs">
+            <span className="flex-1 truncate">{username}</span>
+            {canLogout && (
+              <button
+                className="rounded border border-edge px-2 py-1 hover:text-red-400"
+                onClick={onLogout}
+              >
+                Sign out
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="max-h-[40%] shrink-0 overflow-y-auto">
           <CouncilStatus />
         </div>
       </nav>

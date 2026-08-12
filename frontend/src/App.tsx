@@ -27,6 +27,7 @@ function navigate(roomId: string | null) {
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [authMode, setAuthMode] = useState<string>("disabled");
+  const [username, setUsername] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(roomFromPath);
@@ -47,6 +48,7 @@ export default function App() {
       .me()
       .then((me) => {
         setAuthMode(me.mode);
+        setUsername(me.username);
         setAuthed(me.authenticated);
       })
       .catch(() => setAuthed(false));
@@ -187,6 +189,16 @@ export default function App() {
     setRuns({});
     setDrawer(false);
     navigate(null);
+  }
+
+  async function logout() {
+    if (authMode === "proxy") {
+      // The app session is Cloudflare's; ending ours would change nothing.
+      location.href = "/cdn-cgi/access/logout";
+      return;
+    }
+    await api.logout();
+    location.reload();
   }
 
   async function renameRoom(id: string, title: string) {
@@ -378,6 +390,9 @@ export default function App() {
           onRename={renameRoom}
           onDelete={removeRoom}
           onDeleteAll={removeAllRooms}
+          username={username}
+          canLogout={authMode !== "disabled"}
+          onLogout={logout}
         />
       )}
 
