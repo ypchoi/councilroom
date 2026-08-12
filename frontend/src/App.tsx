@@ -346,7 +346,7 @@ export default function App() {
         <ShareBar token={activeRoom.share_token} onUnshare={() => unshare(activeRoom.id)} />
       )}
 
-      <main className="flex-1 space-y-4 overflow-y-auto p-3">
+      <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
         {messages.length === 0 && (
           <p className="pt-10 text-center text-[15px] text-slate-500 sm:text-sm">Ask one question. The council answers.</p>
         )}

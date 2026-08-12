@@ -7,24 +7,28 @@
   --color-accent: #6ea8fe;
 }
 
+/* The document must not scroll or bounce — only the message list may. A drag
+   that starts on the header or the composer would otherwise pull the page, and
+   with it the browser's URL bar, up and down. overscroll-behavior only reaches
+   the viewport from the root element, so it belongs on html, not body; and the
+   shell is fixed so there is nothing left for a stray drag to move. dvh tracks
+   the visible area, which 100% does not while that URL bar is animating. */
 html,
-body,
-#root {
+body {
   height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
-/* On a phone the URL bar makes 100% taller than what is on screen, so the page
-   itself scrolls and takes the header with it. dvh tracks the visible area, and
-   a body that cannot scroll leaves the message list as the only thing that does. */
 #root {
+  position: fixed;
+  inset: 0;
   height: 100dvh;
 }
 
 body {
   background: var(--color-ink);
   color: #e6edf3;
-  overscroll-behavior-y: none;
-  overflow: hidden;
 }
 
 /* Markdown answers: mobile-first sizes, tuned down on wider screens. */

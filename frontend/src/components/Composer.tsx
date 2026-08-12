@@ -157,7 +157,7 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
           onChange={(e) => addFiles(e.target.files)}
         />
         <textarea
-          className="max-h-40 min-h-11 flex-1 resize-none rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
+          className="max-h-40 min-h-11 flex-1 resize-none overscroll-contain rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
           rows={1}
           placeholder={sending ? "Sending…" : "Ask Council…"}
           value={text}

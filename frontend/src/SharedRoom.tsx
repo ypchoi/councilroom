@@ -34,7 +34,7 @@ export default function SharedRoom({ token }: { token: string }) {
         </span>
       </header>
 
-      <main className="flex-1 space-y-4 overflow-y-auto p-3">
+      <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
         {view.messages.map((message) =>
           message.role === "user" ? (
             <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
