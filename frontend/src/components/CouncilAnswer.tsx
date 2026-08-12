@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentRunView, Provider, RunView } from "../api";
+import Markdown from "./Markdown";
 
 export type LiveStatus = Record<string, { state: "running" | "done" | "failed"; duration_ms?: number; error?: string }>;
 
@@ -77,7 +78,7 @@ export default function CouncilAnswer({
       {answer && (
         <div className="mt-3 border-t border-edge pt-3">
           <p className="pb-1 text-xs tracking-widest text-slate-500">COUNCIL ANSWER</p>
-          <p className="whitespace-pre-wrap text-[17px] leading-relaxed sm:text-[15px]">{answer}</p>
+          <Markdown>{answer}</Markdown>
         </div>
       )}
 
@@ -108,7 +109,7 @@ export default function CouncilAnswer({
                 {!r.attachment_supported && (
                   <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>
                 )}
-                <p className="whitespace-pre-wrap pt-1 text-[15px] leading-relaxed sm:text-sm">{r.content || r.error}</p>
+                <div className="pt-1">{r.content ? <Markdown>{r.content}</Markdown> : <p className="text-[15px] text-red-400 sm:text-sm">{r.error}</p>}</div>
               </div>
             ))}
         </div>
@@ -123,7 +124,7 @@ export default function CouncilAnswer({
             run!.peer_reviews.map((review, i) => (
               <div key={i} className="mt-2 rounded-xl bg-ink p-2">
                 <p className="text-xs text-slate-400">{label(providers, review.reviewer)}</p>
-                <p className="whitespace-pre-wrap pt-1 text-[15px] leading-relaxed sm:text-sm">{review.content || review.error}</p>
+                <div className="pt-1">{review.content ? <Markdown>{review.content}</Markdown> : <p className="text-[15px] text-red-400 sm:text-sm">{review.error}</p>}</div>
               </div>
             ))}
         </div>
