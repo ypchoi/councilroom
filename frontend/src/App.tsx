@@ -15,12 +15,20 @@ import SettingsPanel from "./components/SettingsPanel";
 
 type RunState = { run: RunView | null; live: LiveStatus; stage: string };
 
+/** Rooms are addressable at /r/<id>; "/" is a fresh, not-yet-created room. */
+const roomFromPath = (): string | null => location.pathname.match(/^\/r\/([0-9a-f]{32})$/)?.[1] ?? null;
+
+function navigate(roomId: string | null) {
+  const path = roomId ? `/r/${roomId}` : "/";
+  if (location.pathname !== path) history.pushState({ roomId }, "", path);
+}
+
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [authMode, setAuthMode] = useState<string>("disabled");
   const [password, setPassword] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(roomFromPath);
   const [messages, setMessages] = useState<Message[]>([]);
   const [runs, setRuns] = useState<Record<string, RunState>>({});
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -50,16 +58,26 @@ export default function App() {
       setSettings(s);
       setMode(s.council.default_mode);
     });
-    api.rooms().then((list) => {
-      setRooms(list);
-      setRoomId((current) => current ?? list[0]?.id ?? null);
-    });
+    api.rooms().then(setRooms);
   }, [authed]);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId) {
+      setMessages([]);
+      return;
+    }
     api.messages(roomId).then(setMessages).catch((e) => setError(e.message));
   }, [roomId]);
+
+  // Back/forward between rooms.
+  useEffect(() => {
+    const onPop = () => {
+      setRoomId(roomFromPath());
+      setRuns({});
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,6 +136,7 @@ export default function App() {
     const room = await api.createRoom();
     setRooms((r) => [room, ...r]);
     setRoomId(room.id);
+    navigate(room.id);
     return room.id;
   }
 
@@ -150,13 +169,12 @@ export default function App() {
     follow(started.run_id);
   }
 
-  async function newRoom() {
-    const room = await api.createRoom();
-    setRooms((r) => [room, ...r]);
-    setRoomId(room.id);
+  function newRoom() {
+    setRoomId(null);
     setMessages([]);
     setRuns({});
     setDrawer(false);
+    navigate(null);
   }
 
   async function renameRoom(id: string, title: string) {
@@ -170,6 +188,7 @@ export default function App() {
     setRoomId(null);
     setMessages([]);
     setRuns({});
+    navigate(null);
   }
 
   async function removeRoom(id: string) {
@@ -177,9 +196,10 @@ export default function App() {
     const remaining = rooms.filter((r) => r.id !== id);
     setRooms(remaining);
     if (roomId === id) {
-      setRoomId(remaining[0]?.id ?? null);
+      setRoomId(null);
       setMessages([]);
       setRuns({});
+      navigate(null);
     }
   }
 
@@ -321,6 +341,7 @@ export default function App() {
             setRoomId(id);
             setRuns({});
             setDrawer(false);
+            navigate(id);
           }}
           onCreate={newRoom}
           onRename={renameRoom}
