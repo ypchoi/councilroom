@@ -62,11 +62,19 @@ export default function CouncilAnswer({
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (!waiting) return;
+    // Nothing was waiting until now, so this clock has been stopped — since the
+    // last run finished, or since the phone put the tab to sleep. Wind it
+    // forward before the first tick, or a start stamped a moment ago is
+    // measured against a reading minutes old and the count comes out negative.
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [waiting]);
 
-  const ticking = (start?: number) => (start ? ` (${Math.round((now - start) / 1000)}s)` : "");
+  // Elapsed, never ahead of itself: a start that lands between two ticks is
+  // still in this clock's future, and a wall clock can be set backwards.
+  const ticking = (start?: number) =>
+    start ? ` (${Math.max(0, Math.floor((now - start) / 1000))}s)` : "";
 
   return (
     <div className="rounded-2xl border border-edge bg-panel p-3">
