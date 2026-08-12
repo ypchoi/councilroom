@@ -222,3 +222,4 @@ __pycache__/
 node_modules/
 dist/
 backend/councilroom/static/
+*.tsbuildinfo
