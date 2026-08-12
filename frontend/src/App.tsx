@@ -13,6 +13,7 @@ import {
 import Attachments from "./components/Attachments";
 import Composer from "./components/Composer";
 import CouncilAnswer, { type LiveStatus } from "./components/CouncilAnswer";
+import Icon from "./components/Icon";
 import RoomsDrawer from "./components/RoomsDrawer";
 import SettingsPanel from "./components/SettingsPanel";
 import ShareBar from "./components/ShareBar";
@@ -310,8 +311,12 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
-        <button className="p-1 text-2xl leading-none sm:text-xl" onClick={() => setDrawer(true)} aria-label="Rooms">
-          ☰
+        <button
+          className="p-1.5 text-slate-300 hover:text-white"
+          onClick={() => setDrawer(true)}
+          aria-label="Rooms"
+        >
+          <Icon name="menu" />
         </button>
         <h1 className="flex-1 text-[17px] font-medium sm:text-base">CouncilRoom</h1>
         <select
@@ -329,16 +334,20 @@ export default function App() {
         </select>
         {activeRoom && !activeRoom.share_token && (
           <button
-            className="p-1 text-xl leading-none sm:text-lg"
+            className="p-1.5 text-slate-300 hover:text-white"
             onClick={() => share(activeRoom.id)}
             title="Create a public read-only link to this room"
             aria-label="Share room"
           >
-            🔗
+            <Icon name="link" />
           </button>
         )}
-        <button className="p-1 text-xl leading-none sm:text-lg" onClick={() => setShowSettings(true)} aria-label="Settings">
-          ⚙
+        <button
+          className="p-1.5 text-slate-300 hover:text-white"
+          onClick={() => setShowSettings(true)}
+          aria-label="Settings"
+        >
+          <Icon name="settings" />
         </button>
       </header>
 

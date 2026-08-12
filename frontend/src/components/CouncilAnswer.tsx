@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AgentRunView, Provider, RunView } from "../api";
+import Icon from "./Icon";
 import Markdown from "./Markdown";
 import MemberResponses from "./MemberResponses";
 
@@ -75,9 +76,14 @@ export default function CouncilAnswer({
         {rows.map(([provider, status]) => (
           <li key={provider} className="flex items-center gap-2">
             <span className="w-32 truncate sm:w-28">{label(providers, provider)}</span>
-            <span className={status.state === "failed" ? "text-red-400" : status.state === "done" ? "text-emerald-400" : "text-slate-400"}>
-              {status.state === "done" ? "✓" : status.state === "failed" ? "✕" : "●"}
-            </span>
+            {status.state === "running" ? (
+              <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-slate-400" />
+            ) : (
+              <Icon
+                name={status.state === "done" ? "check" : "x"}
+                className={`h-4 w-4 ${status.state === "done" ? "text-emerald-400" : "text-red-400"}`}
+              />
+            )}
             <span className="text-[13px] text-slate-500 sm:text-xs">
               {status.state === "running"
                 ? `Thinking…${ticking(status.started_at)}`
@@ -125,8 +131,12 @@ export default function CouncilAnswer({
 
       {(run?.peer_reviews.length ?? 0) > 0 && (
         <div className="mt-3 text-[15px] sm:text-sm">
-          <button className="text-slate-400" onClick={() => setOpenReviews((v) => !v)}>
-            {openReviews ? "▼" : "▸"} Peer reviews
+          <button
+            className="flex items-center gap-1.5 text-slate-400"
+            onClick={() => setOpenReviews((v) => !v)}
+          >
+            <Icon name={openReviews ? "chevron-down" : "chevron-right"} className="h-3.5 w-3.5" />
+            Peer reviews
           </button>
           {openReviews &&
             run!.peer_reviews.map((review, i) => (

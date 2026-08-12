@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { shareUrl } from "../api";
+import Icon from "./Icon";
 
 /**
  * Once a room is shared the link itself is on screen, not hidden behind a copy
@@ -21,7 +22,7 @@ export default function ShareBar({ token, onUnshare }: { token: string; onUnshar
 
   return (
     <div className="flex items-center gap-2 border-b border-edge bg-ink/60 px-3 py-1.5 text-[13px] sm:text-xs">
-      <span aria-hidden>🔗</span>
+      <Icon name="link" className="h-4 w-4 text-slate-500" />
       {/* Neither the host nor the /s/ prefix ever varies; only the token does. */}
       <a
         href={url}

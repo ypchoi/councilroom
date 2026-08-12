@@ -1,4 +1,5 @@
 import type { MessageAttachment } from "../api";
+import Icon from "./Icon";
 
 /** The same attachment strip in an owned room and behind a share link — only the URL differs. */
 export default function Attachments({
@@ -23,7 +24,7 @@ export default function Attachments({
             {a.mime_type.startsWith("image/") ? (
               <img src={urlFor(a.id)} alt={a.filename} className="h-14 w-14 rounded object-cover" loading="lazy" />
             ) : (
-              <span aria-hidden>📎</span>
+              <Icon name="paperclip" className="h-4 w-4 text-slate-500" />
             )}
             <span className="max-w-40 truncate">{a.filename}</span>
           </a>

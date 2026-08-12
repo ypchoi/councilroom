@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { shareUrl, type Room } from "../api";
 import CouncilStatus from "./CouncilStatus";
+import Icon from "./Icon";
 
 type Props = {
   rooms: Room[];
@@ -53,8 +54,12 @@ export default function RoomsDrawer({
         className="flex h-full w-80 max-w-[85vw] flex-col bg-panel p-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm" onClick={onCreate}>
-          ✏️ New room
+        <button
+          className="flex items-center justify-center gap-2 rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm"
+          onClick={onCreate}
+        >
+          New room
+          <Icon name="pencil" className="h-4 w-4" />
         </button>
 
         <input
@@ -107,31 +112,31 @@ export default function RoomsDrawer({
                     {room.title}
                   </button>
                   <button
-                    className={`px-2 py-1 hover:text-slate-200 ${
+                    className={`px-1.5 py-1 hover:text-slate-200 ${
                       room.share_token ? "text-accent" : "text-slate-500"
                     }`}
                     onClick={() => (room.share_token ? onUnshare(room.id) : onShare(room.id))}
                     aria-label={room.share_token ? `Stop sharing ${room.title}` : `Share ${room.title}`}
                     title={room.share_token ? "Stop sharing" : "Create a public read-only link"}
                   >
-                    🔗
+                    <Icon name="link" className="h-[18px] w-[18px]" />
                   </button>
                   <button
-                    className="px-2 py-1 text-slate-500 hover:text-slate-200"
+                    className="px-1.5 py-1 text-slate-500 hover:text-slate-200"
                     onClick={() => {
                       setDraft(room.title);
                       setEditing(room.id);
                     }}
                     aria-label={`Rename ${room.title}`}
                   >
-                    ✎
+                    <Icon name="pencil" className="h-[18px] w-[18px]" />
                   </button>
                   <button
-                    className="px-2 py-1 text-slate-500 hover:text-red-400"
+                    className="px-1.5 py-1 text-slate-500 hover:text-red-400"
                     onClick={() => onDelete(room.id)}
                     aria-label={`Delete ${room.title}`}
                   >
-                    ✕
+                    <Icon name="trash" className="h-[18px] w-[18px]" />
                   </button>
                   {room.share_token && (
                     <a

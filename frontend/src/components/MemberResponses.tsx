@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentRunView, RunView } from "../api";
+import Icon from "./Icon";
 import Markdown from "./Markdown";
 
 const seconds = (ms?: number) => (ms ? `${(ms / 1000).toFixed(1)}s` : "");
@@ -19,12 +20,16 @@ export default function MemberResponses({ run }: { run: RunView | null }) {
         {members.map((r) => (
           <button
             key={r.provider}
-            className={`rounded-full border px-3 py-1.5 text-[13px] sm:text-xs ${
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] sm:text-xs ${
               open === r.provider ? "border-accent text-accent" : "border-edge text-slate-400"
             }`}
             onClick={() => setOpen(open === r.provider ? null : r.provider)}
           >
-            {open === r.provider ? "▼" : "▸"} {r.label}
+            <Icon
+              name={open === r.provider ? "chevron-down" : "chevron-right"}
+              className="h-3.5 w-3.5"
+            />
+            {r.label}
           </button>
         ))}
       </div>

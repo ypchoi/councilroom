@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type UsageReport, type ProviderUsage } from "../api";
+import Icon from "./Icon";
 
 // The drawer unmounts this panel every time it closes, but probing costs a CLI
 // spawn per provider — so the report outlives the component and is only fetched
@@ -40,9 +41,10 @@ function Member({ provider }: { provider: ProviderUsage }) {
   return (
     <li className="rounded-xl bg-ink p-2.5">
       <div className="flex items-center gap-2">
-        <span className={provider.authenticated ? "text-emerald-400" : "text-red-400"}>
-          {provider.authenticated ? "✓" : "✕"}
-        </span>
+        <Icon
+          name={provider.authenticated ? "check" : "x"}
+          className={`h-4 w-4 ${provider.authenticated ? "text-emerald-400" : "text-red-400"}`}
+        />
         <span className="text-[15px] sm:text-sm">{provider.label}</span>
         {provider.is_chairman && (
           <span className="rounded bg-edge px-1 text-[10px] tracking-wide text-slate-300">CHAIR</span>
@@ -137,12 +139,13 @@ export default function CouncilStatus() {
       <h2 className="flex items-center gap-2 pb-2 text-xs tracking-widest text-slate-500">
         COUNCIL
         <button
-          className="ml-auto rounded border border-edge px-1.5 py-0.5 text-[11px] tracking-normal hover:text-slate-200 disabled:opacity-40"
+          className="ml-auto flex items-center gap-1 rounded border border-edge px-1.5 py-0.5 text-[11px] tracking-normal hover:text-slate-200 disabled:opacity-40"
           onClick={() => load(true)}
           disabled={busy}
           title="Re-read every CLI's account and quota"
         >
-          {busy ? "…" : "↻ Refresh"}
+          <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+          Refresh
         </button>
       </h2>
       <ul className="space-y-2">

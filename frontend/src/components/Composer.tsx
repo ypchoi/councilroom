@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import Icon, { type IconName } from "./Icon";
 
 type Pending = { key: string; file: File; preview?: string };
 
@@ -85,7 +86,7 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
               {preview ? (
                 <img src={preview} alt={file.name} className="h-10 w-10 rounded object-cover" />
               ) : (
-                <span aria-hidden>📎</span>
+                <Icon name="paperclip" className="h-4 w-4 text-slate-500" />
               )}
               <span className="max-w-40 truncate">{file.name}</span>
               <button
@@ -93,7 +94,7 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
                 onClick={() => remove(key)}
                 aria-label={`Remove ${file.name}`}
               >
-                ✕
+                <Icon name="x" className="h-4 w-4" />
               </button>
             </li>
           ))}
@@ -105,16 +106,19 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <ul className="absolute bottom-13 left-0 z-20 w-40 overflow-hidden rounded-xl border border-edge bg-panel text-[15px] shadow-lg sm:text-sm">
-                {[
-                  { label: "📷  Camera", ref: cameraInput },
-                  { label: "🖼️  Photos", ref: photoInput },
-                  { label: "📎  Files", ref: fileInput },
-                ].map(({ label, ref }) => (
+                {(
+                  [
+                    { label: "Camera", icon: "camera", ref: cameraInput },
+                    { label: "Photos", icon: "image", ref: photoInput },
+                    { label: "Files", icon: "paperclip", ref: fileInput },
+                  ] as { label: string; icon: IconName; ref: typeof cameraInput }[]
+                ).map(({ label, icon, ref }) => (
                   <li key={label}>
                     <button
-                      className="w-full px-3 py-2.5 text-left hover:bg-edge"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-edge"
                       onClick={() => ref.current?.click()}
                     >
+                      <Icon name={icon} className="h-[18px] w-[18px] text-slate-400" />
                       {label}
                     </button>
                   </li>
@@ -123,13 +127,13 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
             </>
           )}
           <button
-            className="h-11 w-11 rounded-full border border-edge text-2xl leading-none disabled:opacity-40 sm:h-10 sm:w-10 sm:text-xl"
+            className="grid h-11 w-11 place-items-center rounded-full border border-edge text-slate-300 disabled:opacity-40 sm:h-10 sm:w-10"
             onClick={() => setMenuOpen((open) => !open)}
             disabled={pending.length >= maxFiles}
             aria-label="Add attachment"
             aria-expanded={menuOpen}
           >
-            ＋
+            <Icon name="plus" />
           </button>
         </div>
         <input
