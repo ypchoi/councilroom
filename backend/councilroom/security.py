@@ -7,6 +7,7 @@ import secrets
 
 from fastapi import HTTPException, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .config import load_config
@@ -52,12 +53,18 @@ def resolve_username(request: Request) -> str | None:
 
 async def get_or_create_user(username: str) -> db.User:
     async with db.session() as s:
-        user = (await s.execute(select(db.User).where(db.User.username == username))).scalar_one_or_none()
-        if user is None:
-            user = db.User(username=username)
-            s.add(user)
+        query = select(db.User).where(db.User.username == username)
+        user = (await s.execute(query)).scalar_one_or_none()
+        if user is not None:
+            return user
+        s.add(db.User(username=username))
+        try:
             await s.commit()
-        return user
+        except IntegrityError:
+            # A first visit fires several API calls at once and each of them
+            # finds no user yet; whichever insert loses just reads the winner's.
+            await s.rollback()
+        return (await s.execute(query)).scalar_one()
 
 
 async def current_user(request: Request) -> db.User:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import tempfile
 
@@ -15,7 +16,7 @@ import pathlib  # noqa: E402
 import httpx  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from councilroom import db  # noqa: E402
+from councilroom import db, security  # noqa: E402
 from councilroom.agents import registry  # noqa: E402
 from councilroom.agents.base import Agent, AgentResponse  # noqa: E402
 from councilroom.main import create_app  # noqa: E402
@@ -286,6 +287,14 @@ async def test_share_link_is_public_and_revocable(client):
     assert (await client.delete(f"/api/rooms/{room['id']}/share")).status_code == 200
     assert (await client.get(f"/api/shared/{token}")).status_code == 404
     assert (await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")).status_code == 404
+
+
+async def test_a_first_visit_may_arrive_in_parallel(client):
+    """A new identity's browser fires several API calls at once, all finding no user yet."""
+    users = await asyncio.gather(
+        *[security.get_or_create_user("newcomer@example.com") for _ in range(8)]
+    )
+    assert len({u.id for u in users}) == 1, "one identity must not become several users"
 
 
 async def _attachment_path(attachment_id: str) -> str:
