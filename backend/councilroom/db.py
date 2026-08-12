@@ -109,6 +109,17 @@ class PeerReview(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class AgentSession(Base):
+    """Provider-side conversation handle for one room member."""
+
+    __tablename__ = "agent_sessions"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    room_id: Mapped[str] = mapped_column(String(32), index=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    session_id: Mapped[str] = mapped_column(String(128))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 _engine = None
 _sessionmaker: async_sessionmaker[AsyncSession] | None = None
 

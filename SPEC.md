@@ -796,11 +796,33 @@ Room
 
 Follow-up questions should preserve Room context.
 
-However, provider context must be explicit and reproducible.
+Each member keeps its own provider-side conversation per Room, resumed through the CLI's own
+session flags:
 
-Do not depend entirely on opaque provider-side conversation state.
+```text
+claude   --resume <session_id>
+codex    exec resume <thread_id>
+agy      --conversation <conversation_id>
+```
 
-CouncilRoom should construct the relevant conversation context and send it to providers.
+Session ids come from each CLI's machine-readable output and are stored per Room + provider.
+
+This keeps each member aware of its own earlier reasoning and of attachments from earlier turns,
+and lets provider-side prompt caching apply.
+
+CouncilRoom must not depend on that state being available. When no session exists, or when
+resuming fails (expired or pruned sessions), CouncilRoom falls back to a conversation context it
+constructs itself from the Room's messages and retries once.
+
+Session reuse must be switchable:
+
+```yaml
+council:
+  resume_sessions: true
+```
+
+Peer reviews and synthesis run in fresh sessions so review material never pollutes a member's
+own thread.
 
 Implement context-window management later if necessary.
 

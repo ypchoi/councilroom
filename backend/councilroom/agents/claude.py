@@ -41,8 +41,12 @@ class ClaudeAgent(Agent):
         # The CLI has no list command; these are the aliases it documents for --model.
         return ["fable", "opus", "sonnet", "haiku"]
 
-    async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse:
+    async def ask(
+        self, prompt: str, attachments: list[Attachment], session_id: str | None = None
+    ) -> AgentResponse:
         argv = [self.executable, "-p", "--output-format", "json"]
+        if session_id:
+            argv += ["--resume", session_id]
         if self.model:
             argv += ["--model", self.model]
         if attachments:
@@ -54,11 +58,13 @@ class ClaudeAgent(Agent):
         # otherwise swallow a trailing positional prompt.
         result = await run_cli(argv, timeout=self.timeout, stdin=self.compose_prompt(prompt, attachments))
         content = result.stdout
+        new_session = session_id
         try:
             payload = json.loads(result.stdout)
             content = payload.get("result", "") or ""
+            new_session = payload.get("session_id") or session_id
             if payload.get("is_error"):
                 content = ""
         except json.JSONDecodeError:
             pass
-        return self._response(result, content, started)
+        return self._response(result, content, started, session_id=new_session)

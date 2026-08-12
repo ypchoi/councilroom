@@ -33,7 +33,9 @@ class AgyAgent(Agent):
                 models.append(ident)
         return models
 
-    async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse:
+    async def ask(
+        self, prompt: str, attachments: list[Attachment], session_id: str | None = None
+    ) -> AgentResponse:
         # In headless print mode agy auto-denies the file-read permission, so binary
         # attachments never reach the model. Text attachments are inlined instead.
         # ponytail: drop this once agy exposes a non-interactive read allow-rule.
@@ -46,6 +48,8 @@ class AgyAgent(Agent):
             "--print-timeout", f"{int(self.timeout)}s",
             "--disable-slash-commands",
         ]
+        if session_id:
+            argv += ["--conversation", session_id]
         if self.model:
             argv += ["--model", self.model]
         if self.effort:
@@ -57,8 +61,17 @@ class AgyAgent(Agent):
         cwd = attachments[0].path.parent if attachments else None
         result = await run_cli(argv, timeout=self.timeout + 15, cwd=cwd)
         return self._response(
-            result, _extract(result.stdout), started, attachment_supported=not binary
+            result, _extract(result.stdout), started, attachment_supported=not binary,
+            session_id=_conversation_id(result.stdout) or session_id,
         )
+
+
+def _conversation_id(stdout: str) -> str | None:
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    return payload.get("conversation_id") if isinstance(payload, dict) else None
 
 
 def _extract(stdout: str) -> str:

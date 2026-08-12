@@ -32,6 +32,7 @@ class AgentResponse:
     exit_code: int | None = None
     model: str | None = None
     attachment_supported: bool = True
+    session_id: str | None = None
 
 
 @dataclass
@@ -115,7 +116,10 @@ class Agent(ABC):
 
     # --- execution ---------------------------------------------------------
     @abstractmethod
-    async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse: ...
+    async def ask(
+        self, prompt: str, attachments: list[Attachment], session_id: str | None = None
+    ) -> AgentResponse:
+        """Answer a prompt, resuming `session_id` when the CLI supports it."""
 
     # --- shared helpers ----------------------------------------------------
     def compose_prompt(
@@ -140,21 +144,27 @@ class Agent(ABC):
         return "\n".join(parts)
 
     def _response(
-        self, result: CliResult, content: str, started: float, *, attachment_supported: bool = True
+        self,
+        result: CliResult,
+        content: str,
+        started: float,
+        *,
+        attachment_supported: bool = True,
+        session_id: str | None = None,
     ) -> AgentResponse:
         duration = int((time.monotonic() - started) * 1000)
         if result.timed_out:
             return AgentResponse(
                 self.name, "", duration, False, error=f"timeout after {self.timeout:.0f}s",
-                model=self.model, attachment_supported=attachment_supported,
+                model=self.model, attachment_supported=attachment_supported, session_id=session_id,
             )
         if result.exit_code != 0 or not content.strip():
             error = (result.stderr or result.stdout or "empty response").strip()[:2000]
             return AgentResponse(
                 self.name, "", duration, False, error=error, exit_code=result.exit_code,
-                model=self.model, attachment_supported=attachment_supported,
+                model=self.model, attachment_supported=attachment_supported, session_id=session_id,
             )
         return AgentResponse(
             self.name, content.strip(), duration, True, exit_code=result.exit_code,
-            model=self.model, attachment_supported=attachment_supported,
+            model=self.model, attachment_supported=attachment_supported, session_id=session_id,
         )

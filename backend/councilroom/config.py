@@ -41,6 +41,10 @@ class CouncilConfig(BaseModel):
     chairman: str = "claude"
     default_mode: Literal["quick", "deep"] = "quick"
     minimum_successful_members: int = 2
+    # Reuse each provider's own conversation session per room (claude --resume,
+    # codex exec resume, agy --conversation). Off = every turn is a cold session
+    # carrying CouncilRoom's reconstructed context.
+    resume_sessions: bool = True
 
 
 class ExecutionConfig(BaseModel):

@@ -155,6 +155,8 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             Minimum successful members
             <input
               type="number"
+              min={1}
+              max={settings.council.members.length || 1}
               className="mt-1 w-full rounded bg-ink p-2"
               value={settings.council.minimum_successful_members}
               onChange={(e) =>
@@ -164,6 +166,12 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
               }
             />
           </label>
+          {settings.council.minimum_successful_members > settings.council.members.length && (
+            <p className="pt-1 text-xs text-amber-400">
+              Only {settings.council.members.length} member(s) selected — runs will require just{" "}
+              {Math.max(1, settings.council.members.length)}.
+            </p>
+          )}
         </section>
 
         {error && <p className="pb-2 text-sm text-red-400">{error}</p>}

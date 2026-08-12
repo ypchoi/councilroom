@@ -18,9 +18,13 @@ from councilroom.agents.base import Agent, AgentResponse  # noqa: E402
 from councilroom.main import create_app  # noqa: E402
 
 
+CALLS: list[dict] = []
+
+
 class StubAgent(Agent):
     answer = "stub answer"
     fails = False
+    session_expired = False  # fail whenever a session id is supplied
 
     async def check_authenticated(self) -> bool:
         return True
@@ -28,22 +32,35 @@ class StubAgent(Agent):
     async def version(self) -> str | None:
         return "0.0-stub"
 
-    async def ask(self, prompt: str, attachments) -> AgentResponse:
-        if self.fails:
-            return AgentResponse(self.name, "", 5, False, error="stub failure")
+    async def ask(self, prompt: str, attachments, session_id: str | None = None) -> AgentResponse:
+        CALLS.append({"provider": self.name, "prompt": prompt, "session_id": session_id})
+        if self.fails or (self.session_expired and session_id):
+            return AgentResponse(self.name, "", 5, False, error="stub failure", session_id=session_id)
         seen = "|".join(a.filename for a in attachments)
-        return AgentResponse(self.name, f"{self.answer} from {self.name} [{seen}] :: {prompt[-40:]}", 5, True)
+        return AgentResponse(
+            self.name,
+            f"{self.answer} from {self.name} [{seen}] :: {prompt[-40:]}",
+            5,
+            True,
+            session_id=f"session-{self.name}",
+        )
 
 
-def make_stub(name: str, *, fails: bool = False, answer: str = "stub answer") -> type[Agent]:
+def make_stub(
+    name: str, *, fails: bool = False, answer: str = "stub answer", session_expired: bool = False
+) -> type[Agent]:
     return type(
         f"Stub{name}", (StubAgent,),
-        {"name": name, "label": name.title(), "executable": "true", "fails": fails, "answer": answer},
+        {
+            "name": name, "label": name.title(), "executable": "true",
+            "fails": fails, "answer": answer, "session_expired": session_expired,
+        },
     )
 
 
 @pytest.fixture(autouse=True)
 def stub_providers():
+    CALLS.clear()
     original = dict(registry.AGENT_CLASSES)
     registry.AGENT_CLASSES.clear()
     registry.AGENT_CLASSES.update({n: make_stub(n) for n in ("claude", "codex", "agy")})
@@ -145,3 +162,38 @@ async def test_upload_rejects_unsupported_type(client):
     files = {"file": ("evil.sh", b"#!/bin/sh\nrm -rf /", "application/x-sh")}
     response = await client.post("/api/attachments", data={"room_id": room["id"]}, files=files)
     assert response.status_code == 415
+
+
+async def test_follow_up_resumes_provider_sessions(client):
+    room = (await client.post("/api/rooms", json={})).json()
+    first = await client.post(f"/api/rooms/{room['id']}/messages", json={"content": "My name is Ada"})
+    await _drain(client, first.json()["run_id"])
+
+    CALLS.clear()
+    second = await client.post(f"/api/rooms/{room['id']}/messages", json={"content": "What is my name?"})
+    await _drain(client, second.json()["run_id"])
+
+    members = [c for c in CALLS if c["provider"] in ("claude", "codex", "agy")]
+    resumed = [c for c in members if c["session_id"]]
+    assert len(resumed) >= 3  # every member resumed its own room session
+    for call in resumed:
+        assert call["session_id"] == f"session-{call['provider']}"
+        # The session already holds the thread, so no rebuilt transcript is resent.
+        assert "Conversation so far" not in call["prompt"]
+
+
+async def test_expired_session_falls_back_to_rebuilt_context(client, stub_providers):
+    room = (await client.post("/api/rooms", json={})).json()
+    first = await client.post(f"/api/rooms/{room['id']}/messages", json={"content": "My name is Ada"})
+    await _drain(client, first.json()["run_id"])
+
+    for name in ("claude", "codex", "agy"):
+        stub_providers[name] = make_stub(name, session_expired=True)
+
+    CALLS.clear()
+    second = await client.post(f"/api/rooms/{room['id']}/messages", json={"content": "What is my name?"})
+    events = await _drain(client, second.json()["run_id"])
+    assert events[-1] == "council.completed"
+
+    retries = [c for c in CALLS if c["session_id"] is None and "Conversation so far" in c["prompt"]]
+    assert retries, "expired sessions must retry with CouncilRoom's own context"

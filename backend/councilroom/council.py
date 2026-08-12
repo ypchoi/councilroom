@@ -133,6 +133,7 @@ def anonymize(responses: list[AgentResponse]) -> list[tuple[str, str]]:
 @dataclass
 class RunInput:
     run_id: str
+    room_id: str
     question: str
     history: list[tuple[str, str]]
     attachments: list[Attachment]
@@ -165,10 +166,19 @@ async def _record_agent_run(run_id: str, provider: str, role: str, resp: AgentRe
 async def _ask_member(spec: RunInput, provider: str, bus: RunBus, cfg: Config) -> AgentResponse:
     agent = build_agent(provider, cfg)
     bus.publish("agent.started", provider=provider)
+    session = await _session_for(spec.room_id, provider) if cfg.council.resume_sessions else None
     try:
-        resp = await agent.ask(member_prompt(spec.question, spec.history), spec.attachments)
+        # With a live session the member already holds the thread, so only the new
+        # question is sent. Without one, CouncilRoom supplies the whole context.
+        prompt = spec.question if session else member_prompt(spec.question, spec.history)
+        resp = await agent.ask(prompt, spec.attachments, session)
+        if session and not resp.success:
+            # Sessions expire or get pruned; retry once as a fresh conversation.
+            resp = await agent.ask(member_prompt(spec.question, spec.history), spec.attachments)
     except Exception as exc:  # adapter bug or missing executable
         resp = AgentResponse(provider, "", 0, False, error=f"{type(exc).__name__}: {exc}")
+    if resp.session_id and cfg.council.resume_sessions:
+        await _remember_session(spec.room_id, provider, resp.session_id)
     await _record_agent_run(spec.run_id, provider, "member", resp)
     if resp.success:
         bus.publish(
@@ -224,7 +234,8 @@ async def execute(spec: RunInput, cfg: Config | None = None) -> None:
     )
     ok = [r for r in results if isinstance(r, AgentResponse) and r.success]
 
-    minimum = max(1, cfg.council.minimum_successful_members)
+    # The requirement can never exceed the council actually sitting for this run.
+    minimum = max(1, min(cfg.council.minimum_successful_members, len(spec.members)))
     if len(ok) < minimum:
         error = f"only {len(ok)}/{len(spec.members)} members succeeded (minimum {minimum})"
         await _set_run(spec.run_id, status="failed", error=error, completed_at=db.utcnow())
@@ -261,6 +272,35 @@ async def execute(spec: RunInput, cfg: Config | None = None) -> None:
         )
         await s.commit()
     bus.publish("council.completed", answer=answer.content, chairman=spec.chairman)
+
+
+async def _session_for(room_id: str, provider: str) -> str | None:
+    async with db.session() as s:
+        row = (
+            await s.execute(
+                select(db.AgentSession).where(
+                    db.AgentSession.room_id == room_id, db.AgentSession.provider == provider
+                )
+            )
+        ).scalar_one_or_none()
+    return row.session_id if row else None
+
+
+async def _remember_session(room_id: str, provider: str, session_id: str) -> None:
+    async with db.session() as s:
+        row = (
+            await s.execute(
+                select(db.AgentSession).where(
+                    db.AgentSession.room_id == room_id, db.AgentSession.provider == provider
+                )
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            s.add(db.AgentSession(room_id=room_id, provider=provider, session_id=session_id))
+        else:
+            row.session_id = session_id
+            row.updated_at = db.utcnow()
+        await s.commit()
 
 
 async def _set_run(run_id: str, **fields) -> None:

@@ -325,6 +325,7 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
 
     spec = council.RunInput(
         run_id=run.id,
+        room_id=room_id,
         question=body.content,
         history=await council.build_history(room_id, message.id),
         attachments=agent_attachments,
@@ -403,6 +404,7 @@ async def retry(run_id: str, body: RetryBody, user: db.User = CurrentUser):
 
     spec = council.RunInput(
         run_id=run.id,
+        room_id=old.room_id,
         question=message.content,
         history=await council.build_history(old.room_id, message.id),
         attachments=attachments,
