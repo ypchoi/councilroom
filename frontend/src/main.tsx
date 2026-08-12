@@ -11,6 +11,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>{shared ? <SharedRoom token={shared} /> : <App />}</StrictMode>
 );
 
-if ("serviceWorker" in navigator && location.protocol === "https:") {
+// The app shell it caches ("/") is not a page a share-link visitor may fetch.
+if (!shared && "serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
