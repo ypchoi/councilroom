@@ -10,7 +10,10 @@ import pytest
 TMP_HOME = tempfile.mkdtemp(prefix="councilroom-test-")
 os.environ["COUNCILROOM_HOME"] = TMP_HOME
 
+import pathlib  # noqa: E402
+
 import httpx  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
 from councilroom import db  # noqa: E402
 from councilroom.agents import registry  # noqa: E402
@@ -212,3 +215,44 @@ async def test_attachment_download_is_owner_only(client):
     assert "notes.txt" in fetched.headers["content-disposition"]
 
     assert (await client.get("/api/attachments/deadbeef")).status_code == 404
+
+
+async def test_deleting_a_room_removes_everything_it_held(client):
+    room = (await client.post("/api/rooms", json={})).json()
+    files = {"file": ("secret.txt", b"private notes", "text/plain")}
+    attachment = (
+        await client.post("/api/attachments", data={"room_id": room["id"]}, files=files)
+    ).json()
+    started = await client.post(
+        f"/api/rooms/{room['id']}/messages",
+        json={"content": "remember this", "attachment_ids": [attachment["id"]], "mode": "deep"},
+    )
+    run_id = started.json()["run_id"]
+    await _drain(client, run_id)
+
+    stored = pathlib.Path((await _attachment_path(attachment["id"])))
+    assert stored.is_file()
+
+    assert (await client.delete(f"/api/rooms/{room['id']}")).status_code == 200
+
+    assert (await client.get(f"/api/runs/{run_id}")).status_code == 404
+    assert (await client.get(f"/api/attachments/{attachment['id']}")).status_code == 404
+    assert not stored.exists()
+
+    async with db.session() as s:
+        leftovers = {
+            "messages": select(db.Message).where(db.Message.room_id == room["id"]),
+            "attachments": select(db.Attachment).where(db.Attachment.room_id == room["id"]),
+            "council_runs": select(db.CouncilRun).where(db.CouncilRun.room_id == room["id"]),
+            "agent_runs": select(db.AgentRun).where(db.AgentRun.council_run_id == run_id),
+            "peer_reviews": select(db.PeerReview).where(db.PeerReview.council_run_id == run_id),
+            "agent_sessions": select(db.AgentSession).where(db.AgentSession.room_id == room["id"]),
+        }
+        for table, query in leftovers.items():
+            rows = (await s.execute(query)).scalars().all()
+            assert rows == [], f"{table} still holds {len(rows)} row(s)"
+
+
+async def _attachment_path(attachment_id: str) -> str:
+    async with db.session() as s:
+        return (await s.get(db.Attachment, attachment_id)).stored_path

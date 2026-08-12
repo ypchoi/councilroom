@@ -196,6 +196,15 @@ async def delete_room(room_id: str, user: db.User = CurrentUser):
             await s.execute(select(db.Attachment).where(db.Attachment.room_id == room.id))
         ).scalars().all():
             shutil.rmtree(UPLOADS_DIR / att.id, ignore_errors=True)
+
+        # Everything hanging off the room goes too — agent runs hold the full
+        # text of each member's answer, so leaving them behind would keep the
+        # conversation readable after the user deleted it.
+        runs = select(db.CouncilRun.id).where(db.CouncilRun.room_id == room.id)
+        await s.execute(delete(db.AgentRun).where(db.AgentRun.council_run_id.in_(runs)))
+        await s.execute(delete(db.PeerReview).where(db.PeerReview.council_run_id.in_(runs)))
+        await s.execute(delete(db.CouncilRun).where(db.CouncilRun.room_id == room.id))
+        await s.execute(delete(db.AgentSession).where(db.AgentSession.room_id == room.id))
         await s.execute(delete(db.Attachment).where(db.Attachment.room_id == room.id))
         await s.execute(delete(db.Message).where(db.Message.room_id == room.id))
         await s.delete(room)
