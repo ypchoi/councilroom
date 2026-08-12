@@ -36,6 +36,8 @@ class Room(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(String(32), index=True)
     title: Mapped[str] = mapped_column(String(255), default="New room")
+    # Set only while the room is shared; knowing it is enough to read the room.
+    share_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
@@ -142,3 +144,7 @@ def session() -> AsyncSession:
 async def init_db() -> None:
     async with engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # create_all only creates missing tables, never alters existing ones.
+        columns = {row[1] for row in await conn.exec_driver_sql("PRAGMA table_info(rooms)")}
+        if "share_token" not in columns:
+            await conn.exec_driver_sql("ALTER TABLE rooms ADD COLUMN share_token VARCHAR(64)")

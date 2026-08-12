@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import mimetypes
+import secrets
 import shutil
 import time
 from pathlib import Path
@@ -165,6 +166,15 @@ class RoomBody(BaseModel):
     title: str = "New room"
 
 
+def _room_json(room: db.Room) -> dict:
+    return {
+        "id": room.id,
+        "title": room.title,
+        "updated_at": room.updated_at,
+        "share_token": room.share_token,
+    }
+
+
 @router.get("/rooms")
 async def list_rooms(user: db.User = CurrentUser):
     async with db.session() as s:
@@ -173,7 +183,7 @@ async def list_rooms(user: db.User = CurrentUser):
                 select(db.Room).where(db.Room.user_id == user.id).order_by(db.Room.updated_at.desc())
             )
         ).scalars().all()
-    return [{"id": r.id, "title": r.title, "updated_at": r.updated_at} for r in rows]
+    return [_room_json(r) for r in rows]
 
 
 @router.post("/rooms")
@@ -182,7 +192,7 @@ async def create_room(body: RoomBody, user: db.User = CurrentUser):
         room = db.Room(user_id=user.id, title=body.title)
         s.add(room)
         await s.commit()
-    return {"id": room.id, "title": room.title, "updated_at": room.updated_at}
+    return _room_json(room)
 
 
 @router.patch("/rooms/{room_id}")
@@ -191,7 +201,7 @@ async def rename_room(room_id: str, body: RoomBody, user: db.User = CurrentUser)
         room = await _room(s, room_id, user)
         room.title = body.title
         await s.commit()
-    return {"id": room.id, "title": room.title}
+    return _room_json(room)
 
 
 @router.delete("/rooms/{room_id}")
@@ -225,29 +235,33 @@ async def _room(s, room_id: str, user: db.User) -> db.Room:
     return room
 
 
+async def _messages(s, room_id: str) -> list[dict]:
+    rows = (
+        await s.execute(
+            select(db.Message).where(db.Message.room_id == room_id).order_by(db.Message.created_at)
+        )
+    ).scalars().all()
+    return [
+        {
+            "id": m.id,
+            "role": m.role,
+            "content": m.content,
+            "council_run_id": m.council_run_id,
+            "created_at": m.created_at,
+            "attachments": [
+                {"id": a.id, "filename": a.filename, "mime_type": a.mime_type, "size": a.size}
+                for a in m.attachments
+            ],
+        }
+        for m in rows
+    ]
+
+
 @router.get("/rooms/{room_id}/messages")
 async def list_messages(room_id: str, user: db.User = CurrentUser):
     async with db.session() as s:
         await _room(s, room_id, user)
-        rows = (
-            await s.execute(
-                select(db.Message).where(db.Message.room_id == room_id).order_by(db.Message.created_at)
-            )
-        ).scalars().all()
-        return [
-            {
-                "id": m.id,
-                "role": m.role,
-                "content": m.content,
-                "council_run_id": m.council_run_id,
-                "created_at": m.created_at,
-                "attachments": [
-                    {"id": a.id, "filename": a.filename, "mime_type": a.mime_type, "size": a.size}
-                    for a in m.attachments
-                ],
-            }
-            for m in rows
-        ]
+        return await _messages(s, room_id)
 
 
 # --------------------------------------------------------------------------
@@ -305,7 +319,10 @@ async def download(attachment_id: str, user: db.User = CurrentUser):
         if attachment is None:
             raise HTTPException(status_code=404, detail="attachment not found")
         await _room(s, attachment.room_id, user)  # ownership, not just knowledge of the id
+    return _attachment_response(attachment)
 
+
+def _attachment_response(attachment: db.Attachment) -> FileResponse:
     path = Path(attachment.stored_path)
     if not path.is_file() or UPLOADS_DIR.resolve() not in path.resolve().parents:
         raise HTTPException(status_code=404, detail="file is gone")
@@ -321,6 +338,62 @@ async def download(attachment_id: str, user: db.User = CurrentUser):
             "Cache-Control": "private, max-age=86400",
         },
     )
+
+
+# --------------------------------------------------------------------------
+# sharing
+#
+# A share token turns one room into a read-only page anyone holding the link can
+# open, with no CouncilRoom user of their own. The token is the whole credential,
+# so it is long, random, and revocable — and the shared endpoints only ever expose
+# that one room. Behind a reverse proxy the proxy still guards the site itself.
+# --------------------------------------------------------------------------
+@router.post("/rooms/{room_id}/share")
+async def share_room(room_id: str, user: db.User = CurrentUser):
+    async with db.session() as s:
+        room = await _room(s, room_id, user)
+        if not room.share_token:
+            room.share_token = secrets.token_urlsafe(24)
+            await s.commit()
+        return {"share_token": room.share_token}
+
+
+@router.delete("/rooms/{room_id}/share")
+async def unshare_room(room_id: str, user: db.User = CurrentUser):
+    async with db.session() as s:
+        room = await _room(s, room_id, user)
+        room.share_token = None
+        await s.commit()
+    return {"share_token": None}
+
+
+async def _shared_room(s, token: str) -> db.Room:
+    room = (
+        await s.execute(select(db.Room).where(db.Room.share_token == token))
+    ).scalar_one_or_none()
+    if room is None:
+        raise HTTPException(status_code=404, detail="link not found")
+    return room
+
+
+@router.get("/shared/{token}")
+async def shared_room(token: str):
+    async with db.session() as s:
+        room = await _shared_room(s, token)
+        return {
+            "room": {"id": room.id, "title": room.title, "updated_at": room.updated_at},
+            "messages": await _messages(s, room.id),
+        }
+
+
+@router.get("/shared/{token}/attachments/{attachment_id}")
+async def shared_attachment(token: str, attachment_id: str):
+    async with db.session() as s:
+        room = await _shared_room(s, token)
+        attachment = await s.get(db.Attachment, attachment_id)
+        if attachment is None or attachment.room_id != room.id:
+            raise HTTPException(status_code=404, detail="attachment not found")
+    return _attachment_response(attachment)
 
 
 # --------------------------------------------------------------------------

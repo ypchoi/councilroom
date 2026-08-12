@@ -253,6 +253,41 @@ async def test_deleting_a_room_removes_everything_it_held(client):
             assert rows == [], f"{table} still holds {len(rows)} row(s)"
 
 
+async def test_share_link_is_public_and_revocable(client):
+    room = (await client.post("/api/rooms", json={})).json()
+    assert room["share_token"] is None
+    files = {"file": ("notes.txt", b"the sky is green", "text/plain")}
+    attachment = (
+        await client.post("/api/attachments", data={"room_id": room["id"]}, files=files)
+    ).json()
+    started = await client.post(
+        f"/api/rooms/{room['id']}/messages",
+        json={"content": "What colour is the sky?", "attachment_ids": [attachment["id"]]},
+    )
+    await _drain(client, started.json()["run_id"])
+
+    token = (await client.post(f"/api/rooms/{room['id']}/share")).json()["share_token"]
+    assert token and len(token) >= 16
+    assert (await client.post(f"/api/rooms/{room['id']}/share")).json()["share_token"] == token
+
+    shared = (await client.get(f"/api/shared/{token}")).json()
+    assert shared["room"]["title"] == "What colour is the sky?"
+    assert [m["role"] for m in shared["messages"]] == ["user", "council"]
+    fetched = await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")
+    assert fetched.status_code == 200 and fetched.content == b"the sky is green"
+
+    # A second room's attachment is not reachable through this room's token.
+    other = (await client.post("/api/rooms", json={})).json()
+    theirs = (
+        await client.post("/api/attachments", data={"room_id": other["id"]}, files=files)
+    ).json()
+    assert (await client.get(f"/api/shared/{token}/attachments/{theirs['id']}")).status_code == 404
+
+    assert (await client.delete(f"/api/rooms/{room['id']}/share")).status_code == 200
+    assert (await client.get(f"/api/shared/{token}")).status_code == 404
+    assert (await client.get(f"/api/shared/{token}/attachments/{attachment['id']}")).status_code == 404
+
+
 async def _attachment_path(attachment_id: str) -> str:
     async with db.session() as s:
         return (await s.get(db.Attachment, attachment_id)).stored_path
