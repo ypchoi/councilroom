@@ -44,7 +44,13 @@ export type Provider = {
 };
 
 export type Settings = {
-  council: { members: string[]; chairman: string; default_mode: "quick" | "deep"; minimum_successful_members: number };
+  council: {
+    members: string[];
+    chairman: string;
+    default_mode: "quick" | "deep";
+    minimum_successful_members: number;
+    resume_sessions: boolean;
+  };
   execution: { timeout_seconds: number };
   attachments: { max_files_per_message: number; max_file_size_mb: number; allowed_mime_types: string[] };
   providers: Record<string, { model: string | null; effort: string | null }>;

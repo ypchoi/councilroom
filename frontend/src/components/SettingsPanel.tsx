@@ -3,6 +3,10 @@ import { api, type Provider, type Settings } from "../api";
 
 type Props = { providers: Provider[]; onClose: () => void; onSaved: (s: Settings) => void };
 
+const Hint = ({ children }: { children: React.ReactNode }) => (
+  <p className="pb-2 text-xs leading-relaxed text-slate-500">{children}</p>
+);
+
 export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,11 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         <h2 className="pb-3 text-lg font-medium">Settings</h2>
 
         <section className="pb-4">
-          <h3 className="pb-2 text-xs tracking-widest text-slate-500">MEMBERS</h3>
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">MEMBERS</h3>
+          <Hint>
+            Every checked member answers your question independently, at the same time. More members
+            means a broader answer and proportionally more subscription usage.
+          </Hint>
           {providers.map((p) => (
             <label key={p.name} className="flex items-center gap-2 py-1 text-sm">
               <input
@@ -64,7 +72,12 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         </section>
 
         <section className="pb-4">
-          <h3 className="pb-2 text-xs tracking-widest text-slate-500">CHAIRMAN</h3>
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">CHAIRMAN</h3>
+          <Hint>
+            Reads every member's answer and writes the single final answer: resolving
+            disagreements, keeping useful minority points. It runs after the members finish, so it
+            costs one extra call.
+          </Hint>
           <select
             className="w-full rounded bg-ink p-2 text-sm"
             value={settings.council.chairman}
@@ -79,7 +92,12 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         </section>
 
         <section className="pb-4">
-          <h3 className="pb-2 text-xs tracking-widest text-slate-500">DEFAULT MODE</h3>
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">DEFAULT MODE</h3>
+          <Hint>
+            <strong>Quick</strong>: members answer once, the Chairman synthesises — 1 call per
+            member + 1. <strong>Deep</strong>: members then review each other's answers anonymously
+            before synthesis — roughly double the calls, better at catching mistakes.
+          </Hint>
           <select
             className="w-full rounded bg-ink p-2 text-sm"
             value={settings.council.default_mode}
@@ -93,7 +111,12 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         </section>
 
         <section className="pb-4">
-          <h3 className="pb-2 text-xs tracking-widest text-slate-500">PROVIDER SETTINGS</h3>
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">PROVIDER SETTINGS</h3>
+          <Hint>
+            Model: leave empty to use whatever the CLI defaults to. Suggestions come from the CLI
+            when it can list its models. Effort sets reasoning depth (higher = slower, more tokens);
+            the Claude CLI has no such flag.
+          </Hint>
           {providers.map((p) => (
             <div key={p.name} className="pb-3">
               <p className="text-sm">{p.label}</p>
@@ -142,6 +165,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
 
         <section className="pb-4">
           <h3 className="pb-2 text-xs tracking-widest text-slate-500">EXECUTION</h3>
+          <Hint>How long one member may take before it is cancelled and marked failed.</Hint>
           <label className="block pb-2 text-sm">
             Timeout (seconds)
             <input
@@ -151,6 +175,10 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
               onChange={(e) => patch({ execution: { timeout_seconds: Number(e.target.value) } })}
             />
           </label>
+          <Hint>
+            If fewer members than this succeed, synthesis is skipped and the errors are shown with a
+            retry button, rather than presenting a thin answer as if it were the council's.
+          </Hint>
           <label className="block text-sm">
             Minimum successful members
             <input
@@ -172,6 +200,25 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
               {Math.max(1, settings.council.members.length)}.
             </p>
           )}
+        </section>
+
+        <section className="pb-4">
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">CONVERSATION</h3>
+          <Hint>
+            On: each member continues its own CLI session per room, so it remembers its earlier
+            answers and attachments, and provider-side caching applies. Off: every turn starts a
+            fresh session and CouncilRoom resends a transcript it rebuilds from the room.
+          </Hint>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.council.resume_sessions}
+              onChange={(e) =>
+                patch({ council: { ...settings.council, resume_sessions: e.target.checked } })
+              }
+            />
+            Resume provider sessions
+          </label>
         </section>
 
         {error && <p className="pb-2 text-sm text-red-400">{error}</p>}

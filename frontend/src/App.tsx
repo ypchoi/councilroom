@@ -220,10 +220,15 @@ export default function App() {
         <select
           className="rounded bg-ink px-2 py-1 text-sm"
           value={mode}
+          title={
+            mode === "quick"
+              ? "Quick: each member answers once, the Chairman synthesises."
+              : "Deep: members also review each other anonymously first — about double the usage."
+          }
           onChange={(e) => setMode(e.target.value as "quick" | "deep")}
         >
-          <option value="quick">Quick</option>
-          <option value="deep">Deep</option>
+          <option value="quick">Quick — one round</option>
+          <option value="deep">Deep — peer review</option>
         </select>
         <button className="text-lg" onClick={() => setShowSettings(true)} aria-label="Settings">
           ⚙
