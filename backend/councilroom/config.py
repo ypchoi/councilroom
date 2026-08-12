@@ -74,11 +74,14 @@ class Config(BaseModel):
     council: CouncilConfig = Field(default_factory=CouncilConfig)
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     attachments: AttachmentConfig = Field(default_factory=AttachmentConfig)
+    # Fixed line-up: one tier for every member, so answers are comparable and the
+    # quota cost of a council run is predictable. Edit config.yaml to change it.
     providers: dict[str, ProviderConfig] = Field(
         default_factory=lambda: {
-            "claude": ProviderConfig(),
-            "codex": ProviderConfig(),
-            "agy": ProviderConfig(),
+            "claude": ProviderConfig(model="sonnet", effort="medium"),
+            "codex": ProviderConfig(model="gpt-5.6-terra", effort="medium"),
+            # agy encodes the effort tier in the model id.
+            "agy": ProviderConfig(model="gemini-3.6-flash-medium"),
         }
     )
 

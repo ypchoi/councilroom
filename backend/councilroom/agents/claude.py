@@ -57,6 +57,8 @@ class ClaudeAgent(Agent):
             argv += ["--resume", session_id]
         if self.model:
             argv += ["--model", self.model]
+        if self.effort:
+            argv += ["--effort", self.effort]
         if attachments:
             # Attachments live in their own directory; let Claude read them there.
             argv += ["--add-dir", str(attachments[0].path.parent), "--allowed-tools", "Read"]

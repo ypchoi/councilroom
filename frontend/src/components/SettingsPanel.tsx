@@ -50,10 +50,17 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             means a broader answer and proportionally more subscription usage.
           </Hint>
           {providers.map((p) => (
-            <label key={p.name} className="flex items-center gap-2 py-1.5 text-[15px] sm:text-sm">
+            <label
+              key={p.name}
+              className={`flex items-center gap-2 py-1.5 text-[15px] sm:text-sm ${
+                p.authenticated ? "" : "opacity-50"
+              }`}
+            >
               <input
                 type="checkbox"
-                checked={settings.council.members.includes(p.name)}
+                // A member that cannot answer must not be selectable.
+                disabled={!p.authenticated}
+                checked={settings.council.members.includes(p.name) && p.authenticated}
                 onChange={(e) =>
                   patch({
                     council: {
@@ -66,7 +73,10 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
                 }
               />
               {p.label}
-              {!p.authenticated && <span className="text-xs text-amber-400">not authenticated</span>}
+              {!p.available && <span className="text-xs text-amber-400">CLI not installed</span>}
+              {p.available && !p.authenticated && (
+                <span className="text-xs text-amber-400">not signed in</span>
+              )}
             </label>
           ))}
         </section>
@@ -84,8 +94,9 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             onChange={(e) => patch({ council: { ...settings.council, chairman: e.target.value } })}
           >
             {providers.map((p) => (
-              <option key={p.name} value={p.name}>
+              <option key={p.name} value={p.name} disabled={!p.authenticated}>
                 {p.label}
+                {p.authenticated ? "" : p.available ? " — not signed in" : " — not installed"}
               </option>
             ))}
           </select>
@@ -113,51 +124,16 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         <section className="pb-4">
           <h3 className="pb-1 text-xs tracking-widest text-slate-500">PROVIDER SETTINGS</h3>
           <Hint>
-            Model: leave empty to use whatever the CLI defaults to. Suggestions come from the CLI
-            when it can list its models. Effort is only shown for Codex — Claude has no such flag,
-            and Antigravity encodes the effort tier in the model id itself (…-high / -medium / -low).
+            The line-up is fixed so every member answers at the same tier and a council run costs a
+            predictable amount of quota. Antigravity carries its effort tier inside the model id.
+            To change any of it, edit <code>~/.councilroom/config.yaml</code> and restart.
           </Hint>
           {providers.map((p) => (
-            <div key={p.name} className="pb-3">
-              <p className="text-sm">{p.label}</p>
-              {/* Free text with suggestions: only agy can enumerate its models. */}
-              <input
-                list={`models-${p.name}`}
-                className="mt-1 w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
-                placeholder="Default"
-                value={settings.providers[p.name]?.model ?? ""}
-                onChange={(e) =>
-                  patch({
-                    providers: {
-                      ...settings.providers,
-                      [p.name]: { ...settings.providers[p.name], model: e.target.value || null },
-                    },
-                  })
-                }
-              />
-              <datalist id={`models-${p.name}`}>
-                {p.models.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-              {p.name === "codex" && (
-                <select
-                  className="mt-1 w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
-                  value={settings.providers[p.name]?.effort ?? ""}
-                  onChange={(e) =>
-                    patch({
-                      providers: {
-                        ...settings.providers,
-                        [p.name]: { ...settings.providers[p.name], effort: e.target.value || null },
-                      },
-                    })
-                  }
-                >
-                  <option value="">Default effort</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
+            <div key={p.name} className="flex items-baseline gap-2 pb-2 text-[15px] sm:text-sm">
+              <span className="w-28 shrink-0 text-slate-300">{p.label}</span>
+              <span className="text-slate-400">{settings.providers[p.name]?.model ?? "CLI default"}</span>
+              {settings.providers[p.name]?.effort && (
+                <span className="text-slate-500">· effort {settings.providers[p.name]?.effort}</span>
               )}
             </div>
           ))}
