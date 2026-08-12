@@ -8,9 +8,10 @@ import mimetypes
 import shutil
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import case, delete, func, select
 
@@ -280,6 +281,31 @@ async def upload(
         s.add(attachment)
         await s.commit()
     return {"id": attachment.id, "filename": attachment.filename, "mime_type": mime, "size": size}
+
+
+@router.get("/attachments/{attachment_id}")
+async def download(attachment_id: str, user: db.User = CurrentUser):
+    async with db.session() as s:
+        attachment = await s.get(db.Attachment, attachment_id)
+        if attachment is None:
+            raise HTTPException(status_code=404, detail="attachment not found")
+        await _room(s, attachment.room_id, user)  # ownership, not just knowledge of the id
+
+    path = Path(attachment.stored_path)
+    if not path.is_file() or UPLOADS_DIR.resolve() not in path.resolve().parents:
+        raise HTTPException(status_code=404, detail="file is gone")
+
+    # Images and PDFs are worth previewing; anything else downloads.
+    inline = attachment.mime_type.startswith("image/") or attachment.mime_type == "application/pdf"
+    quoted = quote(attachment.filename)
+    return FileResponse(
+        path,
+        media_type=attachment.mime_type,
+        headers={
+            "Content-Disposition": f"{'inline' if inline else 'attachment'}; filename*=UTF-8''{quoted}",
+            "Cache-Control": "private, max-age=86400",
+        },
+    )
 
 
 # --------------------------------------------------------------------------

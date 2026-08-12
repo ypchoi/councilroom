@@ -94,6 +94,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
+
 export const api = {
   me: () => request<{ mode: string; authenticated: boolean; username: string | null }>("/auth/me"),
   login: (password: string) =>

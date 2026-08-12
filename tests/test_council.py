@@ -197,3 +197,18 @@ async def test_expired_session_falls_back_to_rebuilt_context(client, stub_provid
 
     retries = [c for c in CALLS if c["session_id"] is None and "Conversation so far" in c["prompt"]]
     assert retries, "expired sessions must retry with CouncilRoom's own context"
+
+
+async def test_attachment_download_is_owner_only(client):
+    room = (await client.post("/api/rooms", json={})).json()
+    files = {"file": ("notes.txt", b"the sky is green", "text/plain")}
+    attachment = (
+        await client.post("/api/attachments", data={"room_id": room["id"]}, files=files)
+    ).json()
+
+    fetched = await client.get(f"/api/attachments/{attachment['id']}")
+    assert fetched.status_code == 200
+    assert fetched.content == b"the sky is green"
+    assert "notes.txt" in fetched.headers["content-disposition"]
+
+    assert (await client.get("/api/attachments/deadbeef")).status_code == 404

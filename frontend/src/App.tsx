@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
+  attachmentUrl,
   watchRun,
   type Message,
   type Provider,
@@ -291,9 +292,29 @@ export default function App() {
           message.role === "user" ? (
             <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
               {message.attachments.length > 0 && (
-                <ul className="pb-1 text-[13px] text-slate-400 sm:text-xs">
+                <ul className="flex flex-wrap gap-2 pb-2">
                   {message.attachments.map((a) => (
-                    <li key={a.id}>📎 {a.filename}</li>
+                    <li key={a.id}>
+                      <a
+                        href={attachmentUrl(a.id)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="flex items-center gap-2 rounded bg-ink px-2 py-1.5 text-[13px] text-slate-300 hover:text-white sm:text-xs"
+                        title={`${a.filename} · ${Math.max(1, Math.round(a.size / 1024))} KB`}
+                      >
+                        {a.mime_type.startsWith("image/") ? (
+                          <img
+                            src={attachmentUrl(a.id)}
+                            alt={a.filename}
+                            className="h-14 w-14 rounded object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span aria-hidden>📎</span>
+                        )}
+                        <span className="max-w-40 truncate">{a.filename}</span>
+                      </a>
+                    </li>
                   ))}
                 </ul>
               )}
