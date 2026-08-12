@@ -22,6 +22,16 @@ class CodexAgent(Agent):
         # codex prints the status line on stderr.
         return result.exit_code == 0 and "logged in" in (result.stdout + result.stderr).lower()
 
+    async def default_model(self) -> str | None:
+        config = Path.home() / ".codex/config.toml"
+        try:
+            for line in config.read_text().splitlines():
+                if line.startswith("model ") or line.startswith("model="):
+                    return line.split("=", 1)[1].strip().strip('"')
+        except OSError:
+            return None
+        return None
+
     async def account(self) -> str | None:
         result = await run_cli([self.executable, "login", "status"], timeout=30)
         line = (result.stdout + result.stderr).strip().splitlines()

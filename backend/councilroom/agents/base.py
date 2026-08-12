@@ -110,6 +110,10 @@ class Agent(ABC):
     async def list_models(self) -> list[str]:
         return []
 
+    async def default_model(self) -> str | None:
+        """What the CLI would pick when CouncilRoom passes no --model."""
+        return None
+
     async def account(self) -> str | None:
         """Signed-in identity/plan, when the CLI reports one. Never credentials."""
         return None

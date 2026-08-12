@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from pathlib import Path
 
 from .base import Agent, AgentResponse, Attachment, run_cli
 
@@ -37,6 +38,13 @@ class ClaudeAgent(Agent):
         result = await run_cli([self.executable, "--version"], timeout=30)
         return result.stdout.strip() or None if result.exit_code == 0 else None
 
+    async def default_model(self) -> str | None:
+        settings = Path.home() / ".claude/settings.json"
+        try:
+            return json.loads(settings.read_text()).get("model")
+        except (OSError, json.JSONDecodeError):
+            return None
+
     async def list_models(self) -> list[str]:
         # The CLI has no list command; these are the aliases it documents for --model.
         return ["fable", "opus", "sonnet", "haiku"]
@@ -63,6 +71,10 @@ class ClaudeAgent(Agent):
             payload = json.loads(result.stdout)
             content = payload.get("result", "") or ""
             new_session = payload.get("session_id") or session_id
+            # modelUsage is keyed by the model that actually answered.
+            used = next(iter(payload.get("modelUsage") or {}), None)
+            if used:
+                self.model = self.model or used
             if payload.get("is_error"):
                 content = ""
         except json.JSONDecodeError:

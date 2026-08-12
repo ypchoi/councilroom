@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from pathlib import Path
 
 from .base import Agent, AgentResponse, Attachment, run_cli
 
@@ -17,6 +18,13 @@ class AgyAgent(Agent):
         # `agy models` needs a valid session to fetch the model list.
         result = await run_cli([self.executable, "models"], timeout=60)
         return result.exit_code == 0 and bool(result.stdout.strip())
+
+    async def default_model(self) -> str | None:
+        settings = Path.home() / ".gemini/antigravity-cli/settings.json"
+        try:
+            return json.loads(settings.read_text()).get("model")
+        except (OSError, json.JSONDecodeError):
+            return None
 
     async def version(self) -> str | None:
         result = await run_cli([self.executable, "--version"], timeout=30)
