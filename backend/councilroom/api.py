@@ -99,10 +99,13 @@ async def providers(user: db.User = CurrentUser):
 
 
 @router.get("/usage")
-async def usage_panel(user: db.User = CurrentUser):
+async def usage_panel(refresh: bool = False, user: db.User = CurrentUser):
     """Per-member status: account, subscription quota (when a delegate reports it), our own calls."""
     cfg = load_config()
-    quotas = await usage.quota()
+    if refresh:
+        # An explicit refresh means the caller wants current numbers, not our caches.
+        _probe_cache.clear()
+    quotas = await usage.quota(force=refresh)
 
     async with db.session() as s:
         rows = (

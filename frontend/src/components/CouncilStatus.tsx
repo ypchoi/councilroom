@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { api, type UsageReport, type ProviderUsage } from "../api";
 
-const REFRESH_MS = 60_000;
+// The drawer unmounts this panel every time it closes, but probing costs a CLI
+// spawn per provider — so the report outlives the component and is only fetched
+// again when the reader asks for it.
+let cached: UsageReport | null = null;
 
 function resetIn(iso: string | null): string {
   if (!iso) return "";
@@ -90,13 +93,23 @@ function Member({ provider }: { provider: ProviderUsage }) {
 }
 
 export default function CouncilStatus() {
-  const [report, setReport] = useState<UsageReport | null>(null);
+  const [report, setReport] = useState<UsageReport | null>(cached);
+  const [busy, setBusy] = useState(false);
+
+  function load(refresh: boolean) {
+    setBusy(true);
+    api
+      .usage(refresh)
+      .then((fresh) => {
+        cached = fresh;
+        setReport(fresh);
+      })
+      .catch(() => {})
+      .finally(() => setBusy(false));
+  }
 
   useEffect(() => {
-    const load = () => api.usage().then(setReport).catch(() => {});
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => clearInterval(timer);
+    if (!cached) load(false);
   }, []);
 
   if (!report) {
@@ -121,7 +134,17 @@ export default function CouncilStatus() {
 
   return (
     <section className="border-t border-edge pt-3">
-      <h2 className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</h2>
+      <h2 className="flex items-center gap-2 pb-2 text-xs tracking-widest text-slate-500">
+        COUNCIL
+        <button
+          className="ml-auto rounded border border-edge px-1.5 py-0.5 text-[11px] tracking-normal hover:text-slate-200 disabled:opacity-40"
+          onClick={() => load(true)}
+          disabled={busy}
+          title="Re-read every CLI's account and quota"
+        >
+          {busy ? "…" : "↻ Refresh"}
+        </button>
+      </h2>
       <ul className="space-y-2">
         {report.providers.map((p) => (
           <Member key={p.name} provider={p} />

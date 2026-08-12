@@ -118,7 +118,7 @@ export const api = {
   logout: () => request<{ ok: true }>("/auth/logout", { method: "POST" }),
 
   providers: () => request<Provider[]>("/providers"),
-  usage: () => request<UsageReport>("/usage"),
+  usage: (refresh = false) => request<UsageReport>(`/usage${refresh ? "?refresh=true" : ""}`),
   settings: () => request<Settings>("/config"),
   saveSettings: (body: Partial<Settings>) =>
     request<Settings>("/config", { method: "PUT", body: JSON.stringify(body) }),
