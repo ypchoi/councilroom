@@ -14,7 +14,7 @@ IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 class CodexAgent(Agent):
     name = "codex"
-    label = "Codex"
+    label = "ChatGPT"  # the CLI is `codex`; the subscription users recognise is ChatGPT
     executable = "codex"
 
     async def check_authenticated(self) -> bool:

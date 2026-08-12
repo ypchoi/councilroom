@@ -11,7 +11,6 @@ type Props = {
   /** Answer persisted with the message, so history renders without loading the run. */
   storedAnswer?: string;
   providers: Provider[];
-  onExpand?: () => void;
   onRetry: (chairman?: string) => void;
 };
 
@@ -26,12 +25,13 @@ export default function CouncilAnswer({
   stage,
   storedAnswer,
   providers,
-  onExpand,
   onRetry,
 }: Props) {
-  const [openResponses, setOpenResponses] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
   const [openReviews, setOpenReviews] = useState(false);
-  const members: AgentRunView[] = run?.responses.filter((r) => r.role === "member") ?? [];
+  const members: AgentRunView[] = (run?.responses ?? [])
+    .filter((r) => r.role === "member")
+    .sort((a, b) => label(providers, a.provider).localeCompare(label(providers, b.provider)));
   const answer = run?.answer || storedAnswer || "";
   const running = !answer && (!run || run.status === "running" || run.status === "pending");
 
@@ -82,41 +82,48 @@ export default function CouncilAnswer({
         </div>
       )}
 
-      {(members.length > 0 || (answer && onExpand)) && (
-        <div className="mt-3 border-t border-edge pt-2 text-[15px] sm:text-sm">
-          <button
-            className="text-slate-400"
-            onClick={() => {
-              if (!openResponses && members.length === 0) onExpand?.();
-              setOpenResponses((v) => !v);
-            }}
-          >
-            {openResponses ? "▼" : "▸"} Individual responses
-          </button>
-          {openResponses && members.length === 0 && (
-            <p className="pt-2 text-xs text-slate-500">loading…</p>
-          )}
-          {openResponses &&
-            members.map((r) => (
-              <div key={r.provider} className="mt-2 rounded-xl bg-ink p-2">
-                <p className="flex justify-between text-xs text-slate-400">
-                  <span>
-                    {label(providers, r.provider)}
-                    {r.model ? ` · ${r.model}` : ""}
-                  </span>
-                  <span>{seconds(r.duration_ms)}</span>
-                </p>
-                {!r.attachment_supported && (
-                  <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>
-                )}
-                <div className="pt-1">{r.content ? <Markdown>{r.content}</Markdown> : <p className="text-[15px] text-red-400 sm:text-sm">{r.error}</p>}</div>
-              </div>
-            ))}
+      {members.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-edge pt-3">
+          {members.map((r) => (
+            <button
+              key={r.provider}
+              className={`rounded-full border px-3 py-1.5 text-[13px] sm:text-xs ${
+                open === r.provider ? "border-accent text-accent" : "border-edge text-slate-400"
+              }`}
+              onClick={() => setOpen(open === r.provider ? null : r.provider)}
+            >
+              {open === r.provider ? "▼" : "▸"} {label(providers, r.provider)} response
+            </button>
+          ))}
         </div>
       )}
 
+      {members
+        .filter((r) => r.provider === open)
+        .map((r) => (
+          <div key={r.provider} className="mt-2 rounded-xl bg-ink p-2.5">
+            <p className="flex justify-between text-xs text-slate-400">
+              <span>
+                {label(providers, r.provider)}
+                {r.model ? ` · ${r.model}` : ""}
+              </span>
+              <span>{seconds(r.duration_ms)}</span>
+            </p>
+            {!r.attachment_supported && (
+              <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>
+            )}
+            <div className="pt-1">
+              {r.content ? (
+                <Markdown>{r.content}</Markdown>
+              ) : (
+                <p className="text-[15px] text-red-400 sm:text-sm">{r.error}</p>
+              )}
+            </div>
+          </div>
+        ))}
+
       {(run?.peer_reviews.length ?? 0) > 0 && (
-        <div className="mt-2 text-sm">
+        <div className="mt-3 text-[15px] sm:text-sm">
           <button className="text-slate-400" onClick={() => setOpenReviews((v) => !v)}>
             {openReviews ? "▼" : "▸"} Peer reviews
           </button>

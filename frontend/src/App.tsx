@@ -84,6 +84,23 @@ export default function App() {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, runs]);
 
+  // Load the runs behind council messages so their per-member buttons can appear.
+  useEffect(() => {
+    const missing = messages
+      .filter((m) => m.role === "council" && m.council_run_id && !runs[m.council_run_id])
+      .map((m) => m.council_run_id!);
+    if (missing.length === 0) return;
+    Promise.all(missing.map((id) => api.run(id).catch(() => null))).then((loaded) =>
+      setRuns((current) => {
+        const next = { ...current };
+        for (const run of loaded) {
+          if (run && !next[run.id]) next[run.id] = { run, live: {}, stage: "" };
+        }
+        return next;
+      })
+    );
+  }, [messages, runs]);
+
   // Phones suspend the SSE stream in the background; resync whatever finished meanwhile.
   useEffect(() => {
     const resync = () => {
@@ -153,12 +170,6 @@ export default function App() {
     setError(null);
     follow(started.run_id);
     await api.messages(target).then(setMessages);
-  }
-
-  async function loadRun(runId: string) {
-    if (runs[runId]?.run) return;
-    const run = await api.run(runId);
-    setRuns((current) => ({ ...current, [runId]: { run, live: {}, stage: "" } }));
   }
 
   async function retry(runId: string, chairman?: string) {
@@ -328,7 +339,6 @@ export default function App() {
               stage={runFor(message)?.stage ?? ""}
               storedAnswer={message.content}
               providers={providers}
-              onExpand={() => message.council_run_id && loadRun(message.council_run_id)}
               onRetry={(chairman) => message.council_run_id && retry(message.council_run_id, chairman)}
             />
           )
