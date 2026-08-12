@@ -83,6 +83,12 @@ def main(argv: list[str] | None = None) -> int:
 
     load_config()
     uvicorn.run(
-        "councilroom.main:app", host=args.host, port=args.port, reload=args.reload
+        "councilroom.main:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        # Keep request.client as the real peer: proxy-auth trusts the peer address,
+        # not a forwarded header that the peer itself could have made up.
+        proxy_headers=False,
     )
     return 0

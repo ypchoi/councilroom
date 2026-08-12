@@ -16,6 +16,7 @@ type RunState = { run: RunView | null; live: LiveStatus; stage: string };
 
 export default function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [authMode, setAuthMode] = useState<string>("disabled");
   const [password, setPassword] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -32,7 +33,13 @@ export default function App() {
   const busy = Object.values(runs).some((r) => r.run === null || r.run.status === "running" || r.run.status === "pending");
 
   useEffect(() => {
-    api.me().then((me) => setAuthed(me.authenticated)).catch(() => setAuthed(false));
+    api
+      .me()
+      .then((me) => {
+        setAuthMode(me.mode);
+        setAuthed(me.authenticated);
+      })
+      .catch(() => setAuthed(false));
   }, []);
 
   useEffect(() => {
@@ -148,6 +155,20 @@ export default function App() {
   }
 
   if (authed === null) return <div className="grid h-full place-items-center text-slate-500">…</div>;
+
+  if (!authed && authMode !== "password") {
+    return (
+      <div className="grid h-full place-items-center p-4 text-center">
+        <div className="max-w-sm">
+          <h1 className="pb-2 text-lg">CouncilRoom</h1>
+          <p className="text-sm text-slate-400">
+            Not authenticated. This deployment expects an identity header from a trusted reverse
+            proxy, but the request arrived without one.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (
