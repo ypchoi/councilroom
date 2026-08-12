@@ -7,6 +7,19 @@ const Hint = ({ children }: { children: React.ReactNode }) => (
   <p className="pb-2 text-[13px] leading-relaxed text-slate-500 sm:text-xs">{children}</p>
 );
 
+/** Probing spawns each CLI, so say what the wait is for instead of showing an empty section. */
+const Probing = () => (
+  <div aria-busy>
+    <p className="flex items-center gap-2 pb-2 text-[13px] text-slate-500 sm:text-xs">
+      <span className="inline-block h-3 w-3 animate-spin rounded-full border border-slate-600 border-t-accent" />
+      Checking which CLIs are installed and signed in…
+    </p>
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="mb-1.5 h-5 animate-pulse rounded bg-ink" />
+    ))}
+  </div>
+);
+
 export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +37,9 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
   }
 
   const patch = (next: Partial<Settings>) => setSettings({ ...settings, ...next });
+  // /api/providers always answers with every known provider, so an empty list
+  // means the probe has not come back yet — not that there are none.
+  const probing = providers.length === 0;
 
   async function save() {
     try {
@@ -49,6 +65,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             Every checked member answers your question independently, at the same time. More members
             means a broader answer and proportionally more subscription usage.
           </Hint>
+          {probing && <Probing />}
           {providers.map((p) => (
             <label
               key={p.name}
@@ -89,10 +106,12 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             costs one extra call.
           </Hint>
           <select
-            className="w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
+            className="w-full rounded bg-ink p-2.5 text-[15px] disabled:opacity-50 sm:text-sm"
+            disabled={probing}
             value={settings.council.chairman}
             onChange={(e) => patch({ council: { ...settings.council, chairman: e.target.value } })}
           >
+            {probing && <option>Checking which CLIs are signed in…</option>}
             {providers.map((p) => (
               <option key={p.name} value={p.name} disabled={!p.authenticated}>
                 {p.label}
@@ -128,6 +147,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             predictable amount of quota. Antigravity carries its effort tier inside the model id.
             To change any of it, edit <code>~/.councilroom/config.yaml</code> and restart.
           </Hint>
+          {probing && <Probing />}
           {providers.map((p) => (
             <div key={p.name} className="flex items-baseline gap-2 pb-2 text-[15px] sm:text-sm">
               <span className="w-28 shrink-0 text-slate-300">{p.label}</span>
