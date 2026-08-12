@@ -43,18 +43,18 @@ export default function RoomsDrawer({
         className="flex h-full w-80 max-w-[85vw] flex-col bg-panel p-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="rounded bg-accent p-2 text-sm font-medium text-ink" onClick={onCreate}>
+        <button className="rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm" onClick={onCreate}>
           New room
         </button>
 
         <input
-          className="mt-2 w-full rounded bg-ink px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-accent"
+          className="mt-2 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
           placeholder="Search rooms…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <div className="flex items-center justify-between px-1 pt-2 text-[11px] text-slate-500">
+        <div className="flex items-center justify-between px-1 pt-2 text-[12px] text-slate-500">
           <span>
             {visible.length} room{visible.length === 1 ? "" : "s"}
             {query.trim() && ` of ${rooms.length}`}
@@ -77,7 +77,7 @@ export default function RoomsDrawer({
               {editing === room.id ? (
                 <input
                   autoFocus
-                  className="flex-1 rounded bg-ink px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-accent"
+                  className="flex-1 rounded bg-ink px-2 py-2.5 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onBlur={() => commit(room.id)}
@@ -89,7 +89,7 @@ export default function RoomsDrawer({
               ) : (
                 <>
                   <button
-                    className={`flex-1 truncate rounded px-2 py-2 text-left text-sm ${
+                    className={`flex-1 truncate rounded px-2 py-2.5 text-left text-[15px] sm:text-sm ${
                       room.id === activeId ? "bg-edge" : ""
                     }`}
                     onClick={() => onSelect(room.id)}
@@ -97,7 +97,7 @@ export default function RoomsDrawer({
                     {room.title}
                   </button>
                   <button
-                    className="px-1 text-slate-500 hover:text-slate-200"
+                    className="px-2 py-1 text-slate-500 hover:text-slate-200"
                     onClick={() => {
                       setDraft(room.title);
                       setEditing(room.id);
@@ -107,7 +107,7 @@ export default function RoomsDrawer({
                     ✎
                   </button>
                   <button
-                    className="px-1 text-slate-500 hover:text-red-400"
+                    className="px-2 py-1 text-slate-500 hover:text-red-400"
                     onClick={() => onDelete(room.id)}
                     aria-label={`Delete ${room.title}`}
                   >
@@ -118,7 +118,7 @@ export default function RoomsDrawer({
             </li>
           ))}
           {visible.length === 0 && (
-            <li className="px-2 py-4 text-center text-xs text-slate-600">no matching rooms</li>
+            <li className="px-2 py-4 text-center text-[13px] text-slate-600">no matching rooms</li>
           )}
         </ul>
 

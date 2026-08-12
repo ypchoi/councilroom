@@ -48,7 +48,7 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
       {pending.length > 0 && (
         <ul className="flex flex-wrap gap-2 pb-2">
           {pending.map(({ att, preview }) => (
-            <li key={att.id} className="flex items-center gap-2 rounded bg-ink px-2 py-1 text-xs">
+            <li key={att.id} className="flex items-center gap-2 rounded bg-ink px-2 py-1.5 text-[13px] sm:text-xs">
               {preview ? (
                 <img src={preview} alt={att.filename} className="h-10 w-10 rounded object-cover" />
               ) : (
@@ -73,7 +73,7 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
       )}
       <div className="flex items-end gap-2">
         <button
-          className="h-10 w-10 shrink-0 rounded-full border border-edge text-xl leading-none disabled:opacity-40"
+          className="h-11 w-11 shrink-0 rounded-full border border-edge text-2xl leading-none disabled:opacity-40 sm:h-10 sm:w-10 sm:text-xl"
           onClick={() => fileInput.current?.click()}
           disabled={!roomId || pending.length >= maxFiles}
           aria-label="Add attachment"
@@ -89,7 +89,7 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
           onChange={(e) => addFiles(e.target.files)}
         />
         <textarea
-          className="max-h-40 min-h-10 flex-1 resize-none rounded-2xl bg-ink px-3 py-2 text-base outline-none focus:ring-1 focus:ring-accent"
+          className="max-h-40 min-h-11 flex-1 resize-none rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
           rows={1}
           placeholder={uploading > 0 ? `Uploading ${uploading}…` : "Ask Council…"}
           value={text}
@@ -102,7 +102,7 @@ export default function Composer({ roomId, busy, maxFiles, onSend }: Props) {
           }}
         />
         <button
-          className="h-10 shrink-0 rounded-full bg-accent px-4 font-medium text-ink disabled:opacity-40"
+          className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:h-10 sm:px-4"
           onClick={send}
           disabled={busy || uploading > 0 || (!text.trim() && pending.length === 0)}
         >

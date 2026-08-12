@@ -225,13 +225,13 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2">
-        <button className="text-xl" onClick={() => setDrawer(true)} aria-label="Rooms">
+      <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
+        <button className="p-1 text-2xl leading-none sm:text-xl" onClick={() => setDrawer(true)} aria-label="Rooms">
           ☰
         </button>
-        <h1 className="flex-1 font-medium">CouncilRoom</h1>
+        <h1 className="flex-1 text-[17px] font-medium sm:text-base">CouncilRoom</h1>
         <select
-          className="rounded bg-ink px-2 py-1 text-sm"
+          className="rounded bg-ink px-2 py-1.5 text-[15px] sm:text-sm"
           value={mode}
           title={
             mode === "quick"
@@ -243,26 +243,26 @@ export default function App() {
           <option value="quick">Quick — one round</option>
           <option value="deep">Deep — peer review</option>
         </select>
-        <button className="text-lg" onClick={() => setShowSettings(true)} aria-label="Settings">
+        <button className="p-1 text-xl leading-none sm:text-lg" onClick={() => setShowSettings(true)} aria-label="Settings">
           ⚙
         </button>
       </header>
 
       <main className="flex-1 space-y-4 overflow-y-auto p-3">
         {messages.length === 0 && (
-          <p className="pt-10 text-center text-sm text-slate-500">Ask one question. The council answers.</p>
+          <p className="pt-10 text-center text-[15px] text-slate-500 sm:text-sm">Ask one question. The council answers.</p>
         )}
         {messages.map((message) =>
           message.role === "user" ? (
-            <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3 py-2">
+            <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
               {message.attachments.length > 0 && (
-                <ul className="pb-1 text-xs text-slate-400">
+                <ul className="pb-1 text-[13px] text-slate-400 sm:text-xs">
                   {message.attachments.map((a) => (
                     <li key={a.id}>📎 {a.filename}</li>
                   ))}
                 </ul>
               )}
-              <p className="whitespace-pre-wrap text-[15px]">{message.content}</p>
+              <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">{message.content}</p>
             </div>
           ) : (
             <CouncilAnswer

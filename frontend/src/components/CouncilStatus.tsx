@@ -23,20 +23,20 @@ function Bar({ percent }: { percent: number }) {
 function Member({ provider }: { provider: ProviderUsage }) {
   const quota = provider.quota;
   return (
-    <li className="rounded-xl bg-ink p-2">
+    <li className="rounded-xl bg-ink p-2.5">
       <div className="flex items-center gap-2">
         <span className={provider.authenticated ? "text-emerald-400" : "text-red-400"}>
           {provider.authenticated ? "✓" : "✕"}
         </span>
-        <span className="text-sm">{provider.label}</span>
+        <span className="text-[15px] sm:text-sm">{provider.label}</span>
         {provider.is_chairman && (
           <span className="rounded bg-edge px-1 text-[10px] tracking-wide text-slate-300">CHAIR</span>
         )}
         {!provider.is_member && <span className="text-[10px] text-slate-500">off</span>}
       </div>
 
-      {provider.account && <p className="truncate pt-1 text-[11px] text-slate-400">{provider.account}</p>}
-      <p className="pt-0.5 text-[11px] text-slate-500">
+      {provider.account && <p className="truncate pt-1 text-[13px] text-slate-400 sm:text-[11px]">{provider.account}</p>}
+      <p className="pt-0.5 text-[13px] text-slate-500 sm:text-[11px]">
         {provider.model ?? "model unknown"}
         {provider.model_is_default && provider.model ? " (CLI default)" : ""}
         {provider.effort ? ` · effort: ${provider.effort}` : ""}
@@ -45,29 +45,29 @@ function Member({ provider }: { provider: ProviderUsage }) {
       {quota ? (
         <div className="space-y-1 pt-1.5">
           {quota.five_hour_percent !== null && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
               <span className="w-6">5h</span>
               <Bar percent={quota.five_hour_percent} />
-              <span className="w-20 text-right">
+              <span className="w-24 text-right sm:w-20">
                 {quota.five_hour_percent}% · {resetIn(quota.five_hour_reset)}
               </span>
             </div>
           )}
           {quota.seven_day_percent !== null && (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
               <span className="w-6">7d</span>
               <Bar percent={quota.seven_day_percent} />
-              <span className="w-20 text-right">
+              <span className="w-24 text-right sm:w-20">
                 {quota.seven_day_percent}% · {resetIn(quota.seven_day_reset)}
               </span>
             </div>
           )}
         </div>
       ) : (
-        <p className="pt-1 text-[11px] text-slate-600">quota not reported by this CLI</p>
+        <p className="pt-1 text-[12px] text-slate-600 sm:text-[11px]">quota not reported by this CLI</p>
       )}
 
-      <p className="pt-1 text-[11px] text-slate-500">
+      <p className="pt-1 text-[12px] text-slate-500 sm:text-[11px]">
         {provider.calls} calls here
         {provider.failures > 0 && ` · ${provider.failures} failed`}
       </p>
@@ -85,7 +85,25 @@ export default function CouncilStatus() {
     return () => clearInterval(timer);
   }, []);
 
-  if (!report) return null;
+  if (!report) {
+    return (
+      <section className="border-t border-edge pt-3">
+        <h2 className="flex items-center gap-2 pb-2 text-xs tracking-widest text-slate-500">
+          COUNCIL
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border border-slate-600 border-t-accent" />
+        </h2>
+        <ul className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="animate-pulse rounded-xl bg-ink p-3">
+              <div className="h-3 w-24 rounded bg-edge" />
+              <div className="mt-2 h-2 w-36 rounded bg-edge" />
+              <div className="mt-2 h-1.5 w-full rounded bg-edge" />
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
 
   return (
     <section className="border-t border-edge pt-3">

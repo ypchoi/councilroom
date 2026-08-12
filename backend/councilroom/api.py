@@ -6,6 +6,7 @@ import asyncio
 import json
 import mimetypes
 import shutil
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -55,24 +56,38 @@ async def me(request: Request):
 # --------------------------------------------------------------------------
 # providers & settings
 # --------------------------------------------------------------------------
+PROBE_TTL_SECONDS = 60
+_probe_cache: dict[str, tuple[float, dict]] = {}
+
+
+async def _probe(name: str, cfg: Config) -> dict:
+    """Provider facts that cost a CLI spawn each — cached, they change rarely."""
+    cached = _probe_cache.get(name)
+    if cached and time.monotonic() - cached[0] < PROBE_TTL_SECONDS:
+        return cached[1]
+
+    agent = build_agent(name, cfg)
+    available = await agent.check_available()
+    authenticated = await agent.check_authenticated() if available else False
+    facts = {
+        "name": name,
+        "label": agent.label,
+        "available": available,
+        "authenticated": authenticated,
+        "version": await agent.version() if available else None,
+        "models": await agent.list_models() if authenticated else [],
+        "account": await agent.account() if authenticated else None,
+        "default_model": await agent.default_model() if available else None,
+    }
+    _probe_cache[name] = (time.monotonic(), facts)
+    return facts
+
+
 @router.get("/providers")
 async def providers(user: db.User = CurrentUser):
     cfg = load_config()
-
-    async def describe(name: str):
-        agent = build_agent(name, cfg)
-        available = await agent.check_available()
-        authenticated = await agent.check_authenticated() if available else False
-        return {
-            "name": name,
-            "label": agent.label,
-            "available": available,
-            "authenticated": authenticated,
-            "version": await agent.version() if available else None,
-            "models": await agent.list_models() if authenticated else [],
-        }
-
-    return await asyncio.gather(*[describe(name) for name in AGENT_CLASSES])
+    facts = await asyncio.gather(*[_probe(name, cfg) for name in AGENT_CLASSES])
+    return [{k: v for k, v in f.items() if k != "default_model"} for f in facts]
 
 
 @router.get("/usage")
@@ -98,19 +113,14 @@ async def usage_panel(user: db.User = CurrentUser):
     counts = {provider: (total, ok or 0, last) for provider, total, ok, last in rows}
 
     async def describe(name: str):
-        agent = build_agent(name, cfg)
-        available = await agent.check_available()
-        authenticated = await agent.check_authenticated() if available else False
+        facts = await _probe(name, cfg)
+        configured = cfg.providers.get(name)
         total, ok, last = counts.get(name, (0, 0, None))
         return {
-            "name": name,
-            "label": agent.label,
-            "available": available,
-            "authenticated": authenticated,
-            "account": await agent.account() if authenticated else None,
-            "model": agent.model or (await agent.default_model() if available else None),
-            "model_is_default": agent.model is None,
-            "effort": agent.effort,
+            **{k: facts[k] for k in ("name", "label", "available", "authenticated", "account")},
+            "model": (configured.model if configured else None) or facts["default_model"],
+            "model_is_default": not (configured and configured.model),
+            "effort": configured.effort if configured else None,
             "quota": quotas.get(name),
             "calls": total,
             "failures": total - ok,

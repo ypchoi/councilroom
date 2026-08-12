@@ -26,14 +26,14 @@ export default function CouncilAnswer({ run, live, stage, providers, onRetry }: 
     <div className="rounded-2xl border border-edge bg-panel p-3">
       <p className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</p>
 
-      <ul className="space-y-1 text-sm">
+      <ul className="space-y-1.5 text-[15px] sm:text-sm">
         {Object.entries(live).map(([provider, status]) => (
           <li key={provider} className="flex items-center gap-2">
-            <span className="w-28 truncate">{label(providers, provider)}</span>
+            <span className="w-32 truncate sm:w-28">{label(providers, provider)}</span>
             <span className={status.state === "failed" ? "text-red-400" : status.state === "done" ? "text-emerald-400" : "text-slate-400"}>
               {status.state === "done" ? "✓" : status.state === "failed" ? "✕" : "●"}
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-[13px] text-slate-500 sm:text-xs">
               {status.state === "running" ? "Thinking…" : status.error ?? seconds(status.duration_ms)}
             </span>
           </li>
@@ -65,12 +65,12 @@ export default function CouncilAnswer({ run, live, stage, providers, onRetry }: 
       {run?.answer && (
         <div className="mt-3 border-t border-edge pt-3">
           <p className="pb-1 text-xs tracking-widest text-slate-500">COUNCIL ANSWER</p>
-          <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{run.answer}</p>
+          <p className="whitespace-pre-wrap text-[17px] leading-relaxed sm:text-[15px]">{run.answer}</p>
         </div>
       )}
 
       {members.length > 0 && (
-        <div className="mt-3 border-t border-edge pt-2 text-sm">
+        <div className="mt-3 border-t border-edge pt-2 text-[15px] sm:text-sm">
           <button className="text-slate-400" onClick={() => setOpenResponses((v) => !v)}>
             {openResponses ? "▼" : "▸"} Individual responses
           </button>
@@ -87,7 +87,7 @@ export default function CouncilAnswer({ run, live, stage, providers, onRetry }: 
                 {!r.attachment_supported && (
                   <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>
                 )}
-                <p className="whitespace-pre-wrap pt-1 text-sm">{r.content || r.error}</p>
+                <p className="whitespace-pre-wrap pt-1 text-[15px] leading-relaxed sm:text-sm">{r.content || r.error}</p>
               </div>
             ))}
         </div>
@@ -102,7 +102,7 @@ export default function CouncilAnswer({ run, live, stage, providers, onRetry }: 
             run!.peer_reviews.map((review, i) => (
               <div key={i} className="mt-2 rounded-xl bg-ink p-2">
                 <p className="text-xs text-slate-400">{label(providers, review.reviewer)}</p>
-                <p className="whitespace-pre-wrap pt-1 text-sm">{review.content || review.error}</p>
+                <p className="whitespace-pre-wrap pt-1 text-[15px] leading-relaxed sm:text-sm">{review.content || review.error}</p>
               </div>
             ))}
         </div>

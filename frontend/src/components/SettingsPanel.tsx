@@ -4,7 +4,7 @@ import { api, type Provider, type Settings } from "../api";
 type Props = { providers: Provider[]; onClose: () => void; onSaved: (s: Settings) => void };
 
 const Hint = ({ children }: { children: React.ReactNode }) => (
-  <p className="pb-2 text-xs leading-relaxed text-slate-500">{children}</p>
+  <p className="pb-2 text-[13px] leading-relaxed text-slate-500 sm:text-xs">{children}</p>
 );
 
 export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
@@ -50,7 +50,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             means a broader answer and proportionally more subscription usage.
           </Hint>
           {providers.map((p) => (
-            <label key={p.name} className="flex items-center gap-2 py-1 text-sm">
+            <label key={p.name} className="flex items-center gap-2 py-1.5 text-[15px] sm:text-sm">
               <input
                 type="checkbox"
                 checked={settings.council.members.includes(p.name)}
@@ -79,7 +79,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             costs one extra call.
           </Hint>
           <select
-            className="w-full rounded bg-ink p-2 text-sm"
+            className="w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
             value={settings.council.chairman}
             onChange={(e) => patch({ council: { ...settings.council, chairman: e.target.value } })}
           >
@@ -99,7 +99,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             before synthesis — roughly double the calls, better at catching mistakes.
           </Hint>
           <select
-            className="w-full rounded bg-ink p-2 text-sm"
+            className="w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
             value={settings.council.default_mode}
             onChange={(e) =>
               patch({ council: { ...settings.council, default_mode: e.target.value as "quick" | "deep" } })
@@ -123,7 +123,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
               {/* Free text with suggestions: only agy can enumerate its models. */}
               <input
                 list={`models-${p.name}`}
-                className="mt-1 w-full rounded bg-ink p-2 text-sm"
+                className="mt-1 w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
                 placeholder="Default"
                 value={settings.providers[p.name]?.model ?? ""}
                 onChange={(e) =>
@@ -142,7 +142,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
               </datalist>
               {p.name === "codex" && (
                 <select
-                  className="mt-1 w-full rounded bg-ink p-2 text-sm"
+                  className="mt-1 w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
                   value={settings.providers[p.name]?.effort ?? ""}
                   onChange={(e) =>
                     patch({
@@ -166,7 +166,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         <section className="pb-4">
           <h3 className="pb-2 text-xs tracking-widest text-slate-500">EXECUTION</h3>
           <Hint>How long one member may take before it is cancelled and marked failed.</Hint>
-          <label className="block pb-2 text-sm">
+          <label className="block pb-2 text-[15px] sm:text-sm">
             Timeout (seconds)
             <input
               type="number"
@@ -179,7 +179,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             If fewer members than this succeed, synthesis is skipped and the errors are shown with a
             retry button, rather than presenting a thin answer as if it were the council's.
           </Hint>
-          <label className="block text-sm">
+          <label className="block text-[15px] sm:text-sm">
             Minimum successful members
             <input
               type="number"
@@ -209,7 +209,7 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
             answers and attachments, and provider-side caching applies. Off: every turn starts a
             fresh session and CouncilRoom resends a transcript it rebuilds from the room.
           </Hint>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-[15px] sm:text-sm">
             <input
               type="checkbox"
               checked={settings.council.resume_sessions}
