@@ -145,8 +145,19 @@ CouncilRoom account of their own — the token is the whole credential, so treat
 pages are read-only: no composer, no retry, no per-member breakdown, no settings.
 
 A share link does not open a door through your front door. Behind Cloudflare Access (or any other
-proxy) the recipient still has to satisfy the proxy to reach the site at all, so to share outside
-your Access policy you need an Access bypass rule for `/s/*` and `/api/shared/*`.
+proxy) the recipient still has to satisfy the proxy to reach the site at all. To share outside your
+Access policy, add a second self-hosted Access application with a **Bypass / Everyone** policy
+covering three paths — the more specific application wins, so everything else stays protected:
+
+| Path | Why |
+|---|---|
+| `/s` | the shared page |
+| `/api/shared` | its messages and attachments |
+| `/assets` | the JS/CSS bundle — without it the visitor gets a blank page |
+
+`/icon.svg` and `/manifest.webmanifest` are optional; leaving them protected only costs the
+favicon. The service worker is not registered on shared pages, since the app shell it caches is not
+a page a visitor may fetch.
 
 ## Council panel
 
