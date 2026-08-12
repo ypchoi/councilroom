@@ -34,10 +34,14 @@ class AgyAgent(Agent):
         return models
 
     async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse:
+        # In headless print mode agy auto-denies the file-read permission, so binary
+        # attachments never reach the model. Text attachments are inlined instead.
+        # ponytail: drop this once agy exposes a non-interactive read allow-rule.
+        binary = [a for a in attachments if a.mime_type != "text/plain"]
         # agy takes the prompt as the value of --print, so use --print=<prompt>.
         argv = [
             self.executable,
-            f"--print={self.compose_prompt(prompt, attachments)}",
+            f"--print={self.compose_prompt(prompt, attachments, binary)}",
             "--output-format", "json",
             "--print-timeout", f"{int(self.timeout)}s",
             "--disable-slash-commands",
@@ -52,7 +56,9 @@ class AgyAgent(Agent):
         started = time.monotonic()
         cwd = attachments[0].path.parent if attachments else None
         result = await run_cli(argv, timeout=self.timeout + 15, cwd=cwd)
-        return self._response(result, _extract(result.stdout), started)
+        return self._response(
+            result, _extract(result.stdout), started, attachment_supported=not binary
+        )
 
 
 def _extract(stdout: str) -> str:
