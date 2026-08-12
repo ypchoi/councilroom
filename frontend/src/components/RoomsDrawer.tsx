@@ -81,9 +81,9 @@ export default function RoomsDrawer({
           )}
         </div>
 
-        <ul className="mt-1 flex-1 space-y-1 overflow-y-auto">
+        <ul className="mt-1 flex-1 divide-y divide-edge overflow-y-auto">
           {visible.map((room) => (
-            <li key={room.id} className="flex flex-wrap items-center gap-1">
+            <li key={room.id} className="flex flex-wrap items-center gap-1 py-0.5">
               {editing === room.id ? (
                 <input
                   autoFocus
