@@ -13,10 +13,18 @@ body,
   height: 100%;
 }
 
+/* On a phone the URL bar makes 100% taller than what is on screen, so the page
+   itself scrolls and takes the header with it. dvh tracks the visible area, and
+   a body that cannot scroll leaves the message list as the only thing that does. */
+#root {
+  height: 100dvh;
+}
+
 body {
   background: var(--color-ink);
   color: #e6edf3;
   overscroll-behavior-y: none;
+  overflow: hidden;
 }
 
 /* Markdown answers: mobile-first sizes, tuned down on wider screens. */
