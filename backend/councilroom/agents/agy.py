@@ -1,0 +1,66 @@
+"""Google Antigravity CLI adapter."""
+
+from __future__ import annotations
+
+import json
+import time
+
+from .base import Agent, AgentResponse, Attachment, run_cli
+
+
+class AgyAgent(Agent):
+    name = "agy"
+    label = "Antigravity"
+    executable = "agy"
+
+    async def check_authenticated(self) -> bool:
+        # `agy models` needs a valid session to fetch the model list.
+        result = await run_cli([self.executable, "models"], timeout=60)
+        return result.exit_code == 0 and bool(result.stdout.strip())
+
+    async def version(self) -> str | None:
+        result = await run_cli([self.executable, "--version"], timeout=30)
+        return result.stdout.strip() or None if result.exit_code == 0 else None
+
+    async def list_models(self) -> list[str]:
+        result = await run_cli([self.executable, "models"], timeout=60)
+        if result.exit_code != 0:
+            return []
+        models = []
+        for line in result.stdout.splitlines():
+            ident = line.split("\t")[0].strip()
+            if ident and " " not in ident:
+                models.append(ident)
+        return models
+
+    async def ask(self, prompt: str, attachments: list[Attachment]) -> AgentResponse:
+        # agy takes the prompt as the value of --print, so use --print=<prompt>.
+        argv = [
+            self.executable,
+            f"--print={self.compose_prompt(prompt, attachments)}",
+            "--output-format", "json",
+            "--print-timeout", f"{int(self.timeout)}s",
+            "--disable-slash-commands",
+        ]
+        if self.model:
+            argv += ["--model", self.model]
+        if self.effort:
+            argv += ["--effort", self.effort]
+        if attachments:
+            argv += ["--add-dir", str(attachments[0].path.parent)]
+
+        started = time.monotonic()
+        cwd = attachments[0].path.parent if attachments else None
+        result = await run_cli(argv, timeout=self.timeout + 15, cwd=cwd)
+        return self._response(result, _extract(result.stdout), started)
+
+
+def _extract(stdout: str) -> str:
+    """`--output-format json` wraps the answer in a `response` field."""
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError:
+        return stdout
+    if isinstance(payload, dict) and "response" in payload:
+        return payload["response"] or ""  # empty response => treated as a failure
+    return stdout
