@@ -162,25 +162,31 @@ async def test_failure_below_minimum_members(client, stub_providers):
     assert retry["message_id"] == started.json()["message_id"]
 
 
-async def test_a_rotating_chair_names_a_real_member_each_run(client):
-    room = (await client.post("/api/rooms", json={})).json()
+async def test_a_rotating_chair_is_fixed_per_room(client):
+    async def new_room() -> str:
+        return (await client.post("/api/rooms", json={})).json()["id"]
 
-    async def ask(chairman: str) -> str:
+    async def ask(room: str, chairman: str) -> str:
         started = await client.post(
-            f"/api/rooms/{room['id']}/messages", json={"content": "who chairs?", "chairman": chairman}
+            f"/api/rooms/{room}/messages", json={"content": "who chairs?", "chairman": chairman}
         )
         assert started.status_code == 200, started.text
         await _drain(client, started.json()["run_id"])
         return started.json()["chairman"]
 
-    # Three members, so four turns visit each once and come back round.
-    seats = [await ask("rotation") for _ in range(4)]
+    # Three members, so four rooms visit each once and come back round.
+    rooms = [await new_room() for _ in range(4)]
+    seats = [await ask(room, "rotation") for room in rooms]
     assert len(set(seats[:3])) == 3, seats
     assert seats[3] == seats[0], seats
 
-    assert await ask("random") in ("claude", "codex", "agy")
+    # Later questions keep the chair the room opened with — under either rule.
+    assert await ask(rooms[0], "rotation") == seats[0]
+    assert await ask(rooms[0], "random") == seats[0]
+
+    assert await ask(await new_room(), "random") in ("claude", "codex", "agy")
     assert (
-        await client.post(f"/api/rooms/{room['id']}/messages", json={"content": "x", "chairman": "coin toss"})
+        await client.post(f"/api/rooms/{rooms[0]}/messages", json={"content": "x", "chairman": "coin toss"})
     ).status_code == 400
 
 

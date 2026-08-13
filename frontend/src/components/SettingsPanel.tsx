@@ -137,9 +137,9 @@ export default function SettingsPanel({
           <Hint>
             Reads every member's answer and writes the single final answer: resolving
             disagreements, keeping useful minority points. It runs after the members finish, so it
-            costs one extra call. <strong>Random</strong> draws a member per question;{" "}
-            <strong>Rotation</strong> passes the seat to the next member each time — both spread
-            the extra call, and the synthesis style, across the council.
+            costs one extra call. <strong>Random</strong> draws a member when a room opens;{" "}
+            <strong>Rotation</strong> seats the next member in each new room. Either way the room
+            keeps the chair it opened with, so one conversation stays in one voice.
           </Hint>
           <select
             className="w-full rounded bg-ink p-2.5 text-[15px] disabled:opacity-50 sm:text-sm"

@@ -418,27 +418,40 @@ class AskBody(BaseModel):
     members: list[str] | None = None
 
 
-async def _chairman(s, seat: str, members: list[str], user_id: str) -> str:
+async def _chairman(s, seat: str, members: list[str], room_id: str, user_id: str) -> str:
     """Turn a rotation into the provider that will chair this run.
 
     Resolved here so nothing downstream — the run row, retry, the shared page —
     needs a notion of a rotating chair.
     """
+    if seat not in CHAIRMAN_ROTATIONS:
+        return seat
+
+    async def chaired_last(*where) -> str | None:
+        return (
+            await s.execute(
+                select(db.CouncilRun.chairman_provider)
+                .where(*where)
+                .order_by(db.CouncilRun.created_at.desc())
+                .limit(1)
+            )
+        ).scalars().first()
+
+    # One chair per room: a conversation keeps the voice it opened with, and it is
+    # the room, not the question, that hands the seat on.
+    held = await chaired_last(db.CouncilRun.room_id == room_id)
+    if held in members:
+        return held
     if seat == "random":
         return secrets.choice(members)
-    if seat != "rotation":
-        return seat
-    # The seat passes on from whoever last held it, across rooms: the newest run
-    # is the only state a rotation needs, so it keeps none of its own.
-    last = (
-        await s.execute(
-            select(db.CouncilRun.chairman_provider)
-            .where(db.CouncilRun.user_id == user_id)
-            .order_by(db.CouncilRun.created_at.desc())
-            .limit(1)
-        )
-    ).scalars().first()
-    return members[(members.index(last) + 1) % len(members)] if last in members else members[0]
+    # A new room seats whoever follows the last room's chair, so the turns stay
+    # even; the newest run is the only state this needs, so it keeps none.
+    previous = await chaired_last(db.CouncilRun.user_id == user_id)
+    return (
+        members[(members.index(previous) + 1) % len(members)]
+        if previous in members
+        else members[0]
+    )
 
 
 @router.post("/rooms/{room_id}/messages")
@@ -475,7 +488,7 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
         if room.title == "New room" and body.content.strip():
             room.title = body.content.strip()[:60]
         room.updated_at = db.utcnow()
-        chairman = await _chairman(s, seat, members, user.id)
+        chairman = await _chairman(s, seat, members, room_id, user.id)
         run = db.CouncilRun(
             id=db.new_id(), room_id=room_id, user_id=user.id, message_id=message.id,
             mode=mode, chairman_provider=chairman,
