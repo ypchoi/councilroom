@@ -137,7 +137,9 @@ export default function SettingsPanel({
           <Hint>
             Reads every member's answer and writes the single final answer: resolving
             disagreements, keeping useful minority points. It runs after the members finish, so it
-            costs one extra call.
+            costs one extra call. <strong>Random</strong> draws a member per question;{" "}
+            <strong>Rotation</strong> passes the seat to the next member each time — both spread
+            the extra call, and the synthesis style, across the council.
           </Hint>
           <select
             className="w-full rounded bg-ink p-2.5 text-[15px] disabled:opacity-50 sm:text-sm"
@@ -146,6 +148,8 @@ export default function SettingsPanel({
             onChange={(e) => patch({ council: { ...settings.council, chairman: e.target.value } })}
           >
             {probing && <option>Checking which CLIs are signed in…</option>}
+            <option value="random">Random</option>
+            <option value="rotation">Rotation</option>
             {providers.map((p) => (
               <option key={p.name} value={p.name} disabled={!p.authenticated}>
                 {p.label}

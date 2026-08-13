@@ -19,7 +19,7 @@ from sqlalchemy import case, delete, func, select
 from . import council, db, security, usage
 from .agents.base import Attachment as AgentAttachment
 from .agents.registry import AGENT_CLASSES, build_agent
-from .config import UPLOADS_DIR, Config, load_config, save_config
+from .config import CHAIRMAN_ROTATIONS, UPLOADS_DIR, Config, load_config, save_config
 
 router = APIRouter(prefix="/api")
 CurrentUser = Depends(security.current_user)
@@ -418,6 +418,29 @@ class AskBody(BaseModel):
     members: list[str] | None = None
 
 
+async def _chairman(s, seat: str, members: list[str], user_id: str) -> str:
+    """Turn a rotation into the provider that will chair this run.
+
+    Resolved here so nothing downstream — the run row, retry, the shared page —
+    needs a notion of a rotating chair.
+    """
+    if seat == "random":
+        return secrets.choice(members)
+    if seat != "rotation":
+        return seat
+    # The seat passes on from whoever last held it, across rooms: the newest run
+    # is the only state a rotation needs, so it keeps none of its own.
+    last = (
+        await s.execute(
+            select(db.CouncilRun.chairman_provider)
+            .where(db.CouncilRun.user_id == user_id)
+            .order_by(db.CouncilRun.created_at.desc())
+            .limit(1)
+        )
+    ).scalars().first()
+    return members[(members.index(last) + 1) % len(members)] if last in members else members[0]
+
+
 @router.post("/rooms/{room_id}/messages")
 async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
     cfg = load_config()
@@ -428,9 +451,11 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
         raise HTTPException(status_code=400, detail="empty message")
 
     mode = body.mode or cfg.council.default_mode
-    chairman = body.chairman or cfg.council.chairman
+    seat = body.chairman or cfg.council.chairman
     members = body.members or cfg.council.members
-    unknown = [m for m in [*members, chairman] if m not in AGENT_CLASSES]
+    unknown = [m for m in members if m not in AGENT_CLASSES]
+    if seat not in AGENT_CLASSES and seat not in CHAIRMAN_ROTATIONS:
+        unknown.append(seat)
     if unknown:
         raise HTTPException(status_code=400, detail=f"unknown provider(s): {', '.join(unknown)}")
     if not members:
@@ -450,6 +475,7 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
         if room.title == "New room" and body.content.strip():
             room.title = body.content.strip()[:60]
         room.updated_at = db.utcnow()
+        chairman = await _chairman(s, seat, members, user.id)
         run = db.CouncilRun(
             id=db.new_id(), room_id=room_id, user_id=user.id, message_id=message.id,
             mode=mode, chairman_provider=chairman,

@@ -40,8 +40,14 @@ class ProviderConfig(BaseModel):
     effort: str | None = None
 
 
+# A chair that is not a fixed provider. Resolved to one at the start of each run,
+# so what actually chaired is recorded rather than the rule that chose it.
+CHAIRMAN_ROTATIONS = ("random", "rotation")
+
+
 class CouncilConfig(BaseModel):
     members: list[str] = Field(default_factory=lambda: ["claude", "codex", "agy"])
+    # A provider name, or one of CHAIRMAN_ROTATIONS.
     chairman: str = "claude"
     default_mode: Literal["quick", "deep"] = "quick"
     minimum_successful_members: int = 2
