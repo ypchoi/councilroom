@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { localTime, type AgentRunView, type Provider, type RunView } from "../api";
+import CopyButton from "./CopyButton";
 import Icon from "./Icon";
 import Markdown from "./Markdown";
 import MemberResponses from "./MemberResponses";
@@ -101,7 +102,10 @@ export default function CouncilAnswer({
             </span>
           )}
         </span>
-        {at && <span className="shrink-0 pl-2 text-[11px]">{localTime(at)}</span>}
+        <span className="flex shrink-0 items-center gap-2 pl-2">
+          {answer && <CopyButton text={answer} label="the Council answer" />}
+          {at && <span className="text-[11px]">{localTime(at)}</span>}
+        </span>
       </div>
 
       <ul className="space-y-1.5 text-[15px] sm:text-sm">

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentRunView, RunView } from "../api";
+import CopyButton from "./CopyButton";
 import Icon from "./Icon";
 import Markdown from "./Markdown";
 
@@ -38,12 +39,15 @@ export default function MemberResponses({ run }: { run: RunView | null }) {
         .filter((r) => r.provider === open)
         .map((r) => (
           <div key={r.provider} className="mt-2 rounded-xl bg-ink p-2.5">
-            <p className="flex justify-between text-xs text-slate-400">
-              <span>
+            <p className="flex items-center justify-between gap-2 text-xs text-slate-400">
+              <span className="truncate">
                 {r.label}
                 {r.model ? ` · ${r.model}` : ""}
               </span>
-              <span>{seconds(r.duration_ms)}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                {seconds(r.duration_ms)}
+                {r.content && <CopyButton text={r.content} label={`${r.label}'s answer`} />}
+              </span>
             </p>
             {!r.attachment_supported && (
               <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>

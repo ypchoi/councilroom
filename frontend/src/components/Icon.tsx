@@ -21,6 +21,7 @@ export type IconName =
   | "panel-close"
   | "panel-open"
   | "refresh"
+  | "copy"
   | "more";
 
 // Multiple subpaths separated by "|"; a zero-length segment ("h.01") is a dot.
@@ -46,6 +47,9 @@ const paths: Record<IconName, string> = {
   "panel-open":
     "M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z|M9 4.5v15|M13.5 9.5 16.5 12l-3 2.5",
   refresh: "M20.5 12a8.5 8.5 0 1 1-2.5-6|M20.5 3v5h-5",
+  // The sheet in front, and the corner of the one it was taken from.
+  copy:
+    "M10 8.5h9.5A1.5 1.5 0 0 1 21 10v9.5a1.5 1.5 0 0 1-1.5 1.5H10a1.5 1.5 0 0 1-1.5-1.5V10A1.5 1.5 0 0 1 10 8.5Z|M5.5 15.5H4.5A1.5 1.5 0 0 1 3 14V4.5A1.5 1.5 0 0 1 4.5 3H14a1.5 1.5 0 0 1 1.5 1.5v1",
   more: "M12 5.5h.01|M12 12h.01|M12 18.5h.01",
 };
 
