@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { api, type Provider, type Settings } from "../api";
+import CouncilStatus from "./CouncilStatus";
 
-type Props = { providers: Provider[]; onClose: () => void; onSaved: (s: Settings) => void };
+type Props = {
+  providers: Provider[];
+  username: string | null;
+  canLogout: boolean;
+  onLogout: () => void;
+  onClose: () => void;
+  onSaved: (s: Settings) => void;
+};
 
 const Hint = ({ children }: { children: React.ReactNode }) => (
   <p className="pb-2 text-[13px] leading-relaxed text-slate-500 sm:text-xs">{children}</p>
@@ -20,7 +28,14 @@ const Probing = () => (
   </div>
 );
 
-export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
+export default function SettingsPanel({
+  providers,
+  username,
+  canLogout,
+  onLogout,
+  onClose,
+  onSaved,
+}: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +73,25 @@ export default function SettingsPanel({ providers, onClose, onSaved }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="pb-3 text-lg font-medium">Settings</h2>
+
+        {username && (
+          <section className="flex items-center gap-2 pb-4 text-[15px] sm:text-sm">
+            <span className="flex-1 truncate text-slate-300">{username}</span>
+            {canLogout && (
+              <button
+                className="rounded border border-edge px-2 py-1 text-[13px] hover:text-red-400 sm:text-xs"
+                onClick={onLogout}
+              >
+                Sign out
+              </button>
+            )}
+          </section>
+        )}
+
+        {/* Who the council is right now, above the settings that change it. */}
+        <div className="pb-4">
+          <CouncilStatus />
+        </div>
 
         <section className="pb-4">
           <h3 className="pb-1 text-xs tracking-widest text-slate-500">MEMBERS</h3>

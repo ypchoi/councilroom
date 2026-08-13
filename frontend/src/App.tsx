@@ -319,13 +319,6 @@ export default function App() {
             <Icon name="link" />
           </button>
         )}
-        <button
-          className="p-1.5 text-slate-300 hover:text-white"
-          onClick={() => setShowSettings(true)}
-          aria-label="Settings"
-        >
-          <Icon name="settings" />
-        </button>
       </header>
 
       {activeRoom?.share_token && (
@@ -368,15 +361,16 @@ export default function App() {
           onDeleteAll={removeAllRooms}
           onShare={share}
           onUnshare={unshare}
-          username={username}
-          canLogout={authMode === "password" || Boolean(logoutUrl)}
-          onLogout={logout}
+          onSettings={() => setShowSettings(true)}
         />
       )}
 
       {showSettings && (
         <SettingsPanel
           providers={providers}
+          username={username}
+          canLogout={authMode === "password" || Boolean(logoutUrl)}
+          onLogout={logout}
           onClose={() => setShowSettings(false)}
           onSaved={(s) => {
             setSettings(s);

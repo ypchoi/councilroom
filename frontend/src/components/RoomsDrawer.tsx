@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { localTime, shareUrl, type Room } from "../api";
-import CouncilStatus from "./CouncilStatus";
 import Icon from "./Icon";
 
 type Props = {
@@ -14,9 +13,7 @@ type Props = {
   onDeleteAll: () => void;
   onShare: (id: string) => void;
   onUnshare: (id: string) => void;
-  username: string | null;
-  canLogout: boolean;
-  onLogout: () => void;
+  onSettings: () => void;
 };
 
 export default function RoomsDrawer({
@@ -30,9 +27,7 @@ export default function RoomsDrawer({
   onDeleteAll,
   onShare,
   onUnshare,
-  username,
-  canLogout,
-  onLogout,
+  onSettings,
 }: Props) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -189,23 +184,15 @@ export default function RoomsDrawer({
           )}
         </ul>
 
-        {username && (
-          <div className="flex shrink-0 items-center gap-2 border-t border-edge pt-2 text-[13px] text-slate-400 sm:text-xs">
-            <span className="flex-1 truncate">{username}</span>
-            {canLogout && (
-              <button
-                className="rounded border border-edge px-2 py-1 hover:text-red-400"
-                onClick={onLogout}
-              >
-                Sign out
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="max-h-[40%] shrink-0 overflow-y-auto">
-          <CouncilStatus />
-        </div>
+        {/* Account and council standing moved behind here: the drawer is for
+            picking a room, and both were pushing the list into a sliver. */}
+        <button
+          className="mt-2 flex shrink-0 items-center gap-2 border-t border-edge pt-3 text-[15px] text-slate-300 hover:text-white sm:text-sm"
+          onClick={onSettings}
+        >
+          <Icon name="settings" className="h-4 w-4" />
+          Settings
+        </button>
       </nav>
     </div>
   );
