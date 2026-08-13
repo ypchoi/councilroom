@@ -45,7 +45,7 @@ Authentication remains the responsibility of each official CLI.
 
 ---
 
-# 2. Product Philosophy
+## 2. Product Philosophy
 
 CouncilRoom is an **AI chat application**, not a coding-agent orchestrator.
 
@@ -64,7 +64,7 @@ The orchestration should mostly be invisible to the user.
 
 ---
 
-# 3. Primary Goals
+## 3. Primary Goals
 
 CouncilRoom must support:
 
@@ -90,7 +90,7 @@ CouncilRoom must support:
 
 ---
 
-# 4. Non-Goals
+## 4. Non-Goals
 
 CouncilRoom is NOT intended to be:
 
@@ -114,7 +114,7 @@ The core orchestration is simple enough to implement directly.
 
 ---
 
-# 5. Target Environment
+## 5. Target Environment
 
 Primary server:
 
@@ -139,9 +139,9 @@ CouncilRoom must work on a headless Ubuntu server.
 
 ---
 
-# 6. Technology Stack
+## 6. Technology Stack
 
-## Backend
+### Backend
 
 Use:
 
@@ -166,7 +166,7 @@ for the initial release.
 
 ---
 
-# 7. CLI Process Execution
+## 7. CLI Process Execution
 
 Use:
 
@@ -207,7 +207,7 @@ Requirements:
 
 ---
 
-# 8. Frontend
+## 8. Frontend
 
 Use:
 
@@ -225,7 +225,7 @@ The frontend should eventually feel comparable to a modern consumer AI chat inte
 
 ---
 
-# 9. Distribution
+## 9. Distribution
 
 CouncilRoom should appear to users as one application.
 
@@ -246,13 +246,17 @@ The React frontend should be compiled to static assets and bundled with the Pyth
 
 The FastAPI application should serve the frontend.
 
+Not yet true: `backend/councilroom/static/` is a build output and is gitignored, so the build
+backend excludes it and an installed wheel serves no UI. Until the bundle is packaged explicitly,
+the working install is a checkout with an editable install (see README).
+
 Docker may be provided later as an optional deployment method.
 
 Docker should NOT be required because authenticated provider CLIs normally live on the host.
 
 ---
 
-# 10. Runtime Files
+## 10. Runtime Files
 
 Default:
 
@@ -269,60 +273,48 @@ Provider OAuth credentials must never be copied into this directory.
 
 ---
 
-# 11. Repository Structure
-
-Recommended structure:
+## 11. Repository Structure
 
 ```text
 councilroom/
 ├── backend/
 │   └── councilroom/
-│       ├── main.py
-│       ├── cli.py
-│       │
-│       ├── api/
-│       │   ├── rooms.py
-│       │   ├── messages.py
-│       │   ├── attachments.py
-│       │   ├── council.py
-│       │   └── providers.py
+│       ├── main.py          FastAPI app, static mount, SPA fallback
+│       ├── cli.py           doctor / serve / set-password
+│       ├── api.py           HTTP routes, including the SSE stream
+│       ├── council.py       quick + deep orchestration, event fan-out
+│       ├── db.py            SQLAlchemy models, engine, session
+│       ├── config.py        paths, config.yaml load/save
+│       ├── security.py      auth modes, password hashing
+│       ├── usage.py         subscription quota, via claude-dashboard
 │       │
 │       ├── agents/
-│       │   ├── base.py
+│       │   ├── base.py      Agent ABC, run_cli, Attachment/AgentResponse
 │       │   ├── claude.py
 │       │   ├── codex.py
 │       │   ├── agy.py
 │       │   └── registry.py
 │       │
-│       ├── council/
-│       │   ├── engine.py
-│       │   ├── quick.py
-│       │   ├── deep.py
-│       │   ├── peer_review.py
-│       │   └── synthesis.py
-│       │
-│       ├── db/
-│       ├── models/
-│       ├── services/
-│       ├── config/
-│       └── security/
+│       └── static/          built frontend — generated, not committed
 │
 ├── frontend/
 │   ├── src/
 │   ├── public/
 │   └── package.json
 │
+├── scripts/                 install-service.sh, restart.sh, reset.sh
 ├── tests/
 ├── pyproject.toml
 ├── README.md
 └── LICENSE
 ```
 
-This structure is a recommendation, not a hard requirement.
+Modules stay flat: one file per concern. A concern earns its own package when it outgrows a file,
+not before — splitting `api.py` or `council.py` is a later move, not a starting shape.
 
 ---
 
-# 12. Provider Abstraction
+## 12. Provider Abstraction
 
 Providers must implement a common interface.
 
@@ -348,26 +340,47 @@ class AgentResponse:
     duration_ms: int
     success: bool
     error: str | None = None
+    exit_code: int | None = None
+    model: str | None = None
+    attachment_supported: bool = True
+    session_id: str | None = None
 
 
 class Agent(ABC):
+    name: str = ""
+    label: str = ""
+    executable: str = ""
 
-    @abstractmethod
-    async def check_available(self) -> bool:
+    def __init__(self, model: str | None = None, effort: str | None = None, timeout: float = 300):
         ...
 
-    @abstractmethod
-    async def check_authenticated(self) -> bool:
-        ...
+    # capability probes
+    async def check_available(self) -> bool: ...          # shutil.which(executable)
 
+    @abstractmethod
+    async def check_authenticated(self) -> bool: ...
+
+    @abstractmethod
+    async def version(self) -> str | None: ...
+
+    async def list_models(self) -> list[str]: ...
+    async def default_model(self) -> str | None: ...      # what the CLI picks with no --model
+    async def account(self) -> str | None: ...            # signed-in identity/plan, never secrets
+
+    # execution
     @abstractmethod
     async def ask(
         self,
         prompt: str,
         attachments: list[Attachment],
+        session_id: str | None = None,
     ) -> AgentResponse:
         ...
 ```
+
+Shared, non-abstract helpers live on the base class: `compose_prompt()` (inlines small text
+attachments, references the rest by absolute path) and `_response()` (turns a `CliResult` into an
+`AgentResponse`, including the timeout and empty-output cases).
 
 Provider-specific command syntax must remain inside provider adapters.
 
@@ -375,9 +388,9 @@ The Council engine must not know how individual CLIs are invoked.
 
 ---
 
-# 13. Initial Providers
+## 13. Initial Providers
 
-## Claude
+### Claude
 
 Executable:
 
@@ -389,7 +402,7 @@ Use the authenticated Claude Code CLI.
 
 ---
 
-## Codex
+### Codex
 
 Executable:
 
@@ -401,7 +414,7 @@ Use the authenticated Codex CLI.
 
 ---
 
-## Antigravity
+### Antigravity
 
 Executable:
 
@@ -429,7 +442,7 @@ Prefer structured/machine-readable output where it improves reliability.
 
 ---
 
-# 14. Provider Independence
+## 14. Provider Independence
 
 Do NOT assume:
 
@@ -450,7 +463,7 @@ Each provider adapter must independently implement:
 
 ---
 
-# 15. Doctor Command
+## 15. Doctor Command
 
 Implement:
 
@@ -494,7 +507,7 @@ Never display credential contents.
 
 ---
 
-# 16. Quick Council
+## 16. Quick Council
 
 Quick Council is the default mode.
 
@@ -533,7 +546,7 @@ First-round responses must be independent.
 
 ---
 
-# 17. Deep Council
+## 17. Deep Council
 
 Deep Council provides higher-quality deliberation.
 
@@ -575,7 +588,7 @@ Deep Council consumes substantially more subscription quota and should not be th
 
 ---
 
-# 18. Anonymized Peer Review
+## 18. Anonymized Peer Review
 
 Before peer review:
 
@@ -608,7 +621,7 @@ The reviewing model should evaluate:
 
 ---
 
-# 19. Chairman
+## 19. Chairman
 
 Users must be able to choose the synthesis provider.
 
@@ -642,7 +655,7 @@ Do not simply concatenate responses.
 
 ---
 
-# 20. Failure Handling
+## 20. Failure Handling
 
 Provider failures must degrade gracefully.
 
@@ -678,7 +691,7 @@ If the Chairman fails:
 
 ---
 
-# 21. Attachments
+## 21. Attachments
 
 Attachments are a first-class feature.
 
@@ -712,7 +725,7 @@ Make configurable.
 
 ---
 
-# 22. Attachment Storage
+## 22. Attachment Storage
 
 Store uploads under:
 
@@ -742,7 +755,7 @@ Prevent:
 
 ---
 
-# 23. Image Handling
+## 23. Image Handling
 
 Do NOT OCR images by default.
 
@@ -760,9 +773,14 @@ for that provider/run.
 
 Never imply that a model analyzed an attachment it did not receive.
 
+Antigravity has no image input: shown a picture it reaches for Bash and writes a script to inspect
+the pixels, which headless mode auto-denies — emptying the whole run. It is therefore never told
+where binary attachments are, and its response is recorded with `attachment_supported = false`
+rather than counted as a failure. Members that can read the attachment still receive it.
+
 ---
 
-# 24. Rooms
+## 24. Rooms
 
 Conversation sessions are called **Rooms**.
 
@@ -793,7 +811,7 @@ Room
 Each room is addressable at `/r/<id>`; `/` is an empty draft and the room is only created when the
 first message is sent.
 
-## Share links
+### Share links
 
 A room may be published as a read-only page at `/s/<token>`.
 
@@ -817,7 +835,7 @@ Rules:
 
 ---
 
-# 25. Conversation Context
+## 25. Conversation Context
 
 Follow-up questions should preserve Room context.
 
@@ -853,28 +871,30 @@ Implement context-window management later if necessary.
 
 ---
 
-# 26. Database
+## 26. Database
 
 Use SQLite initially.
 
-Suggested tables:
+Tables:
 
 ```text
 users
-rooms
+rooms             owner, title, share_token
 messages
 attachments
 council_runs
-agent_runs
-agent_responses
+agent_runs        one row per member per run, holding that member's response
 peer_reviews
+agent_sessions    provider-side session id per room + provider
 ```
+
+A member's answer lives on its `agent_runs` row; there is no separate responses table.
 
 No provider OAuth credentials belong in the database.
 
 ---
 
-# 27. Council Run Model
+## 27. Council Run Model
 
 Suggested fields:
 
@@ -882,18 +902,24 @@ Suggested fields:
 id
 room_id
 user_id
+message_id
 mode
-status
+status                pending | running | completed | failed
 chairman_provider
+answer                the synthesised Council Answer
+error
 
 created_at
 started_at
 completed_at
 ```
 
+A run left `pending`/`running` by a restart is closed as `failed` at startup: nothing can still be
+running in a process that has only just started.
+
 ---
 
-# 28. Agent Run Model
+## 28. Agent Run Model
 
 Suggested fields:
 
@@ -902,8 +928,11 @@ id
 council_run_id
 provider
 model
+role                  member | chairman
 
 status
+content               that member's own answer
+attachment_supported
 
 started_at
 completed_at
@@ -915,7 +944,7 @@ error
 
 ---
 
-# 29. Streaming
+## 29. Streaming
 
 CouncilRoom must provide live progress.
 
@@ -962,7 +991,7 @@ council.failed
 
 ---
 
-# 30. Main UI
+## 30. Main UI
 
 Mobile-first layout.
 
@@ -1000,7 +1029,7 @@ Example:
 
 ---
 
-# 31. Individual Responses
+## 31. Individual Responses
 
 The synthesized Council Answer is primary.
 
@@ -1030,7 +1059,7 @@ Deep mode may additionally expose:
 
 ---
 
-# 32. Settings
+## 32. Settings
 
 Initial settings:
 
@@ -1083,7 +1112,7 @@ Where practical, discover available models from provider CLIs.
 
 ---
 
-# 33. Authentication Philosophy
+## 33. Authentication Philosophy
 
 CouncilRoom should NOT become an identity provider.
 
@@ -1099,7 +1128,7 @@ proxy
 
 ---
 
-# 34. Disabled Authentication
+## 34. Disabled Authentication
 
 For local development:
 
@@ -1112,7 +1141,7 @@ Only recommended when CouncilRoom is bound to localhost or otherwise protected e
 
 ---
 
-# 35. Password Authentication
+## 35. Password Authentication
 
 Optional simple single-user mode:
 
@@ -1129,7 +1158,7 @@ Never store plaintext passwords.
 
 ---
 
-# 36. Reverse Proxy Authentication
+## 36. Reverse Proxy Authentication
 
 CouncilRoom should support trusted authentication headers.
 
@@ -1141,9 +1170,17 @@ auth:
 
   trusted_proxy:
     user_header: X-Authenticated-User
+    allowed_ips: []       # peers permitted to set the header
+    logout_url: null      # where the proxy ends its session
 ```
 
 The actual header name must be configurable.
+
+Behind a proxy the browser session belongs to the proxy, so signing out means sending the user to
+`logout_url`. When it is empty the Sign out button is hidden rather than pretending to end a
+session CouncilRoom does not own.
+
+Each distinct identity string becomes its own CouncilRoom user, with its own rooms.
 
 This allows CouncilRoom to work with external systems such as:
 
@@ -1159,12 +1196,17 @@ Do NOT hard-code Cloudflare-specific behavior into the core application.
 
 ---
 
-# 37. Proxy Security
+## 37. Proxy Security
 
 Never trust authentication headers from arbitrary clients.
 
 When proxy auth mode is enabled:
 
-* document that CouncilRoom must not be directly exposed
-* optionally restrict trusted
+* document that CouncilRoom must not be directly exposed — the header is trusted because of where
+  it comes from, so anyone who can reach the app directly can claim any identity
+* restrict which peers may set the header, through `trusted_proxy.allowed_ips`
+* check the real peer address, never `X-Forwarded-For` — a client can send that too. Uvicorn's
+  proxy-header handling is therefore left off
+* keep the app bound to `127.0.0.1`, so an unreachable port and a peer check are what make the
+  header safe
 

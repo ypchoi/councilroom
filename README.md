@@ -11,87 +11,37 @@ credentials are ever read, copied or stored by CouncilRoom.
 
 ---
 
+## Requirements
+
+* **Linux.** The app needs no more than a POSIX shell; the service scripts assume systemd.
+* **Python 3.12+**, and **Node 22+** to build the frontend.
+* **The provider CLIs, already signed in** — `claude`, `codex`, `agy`. CouncilRoom never logs them
+  in for you and never sees how they are logged in. Two working members are enough to reach the
+  default quorum, so a missing third is not a blocker.
+
 ## Install
 
-```bash
-pipx install councilroom
-councilroom doctor   # check CLIs, auth and storage
-councilroom serve    # http://127.0.0.1:8420
-```
-
-From a checkout:
+CouncilRoom is not on PyPI, and the frontend is built rather than committed, so install from a
+checkout:
 
 ```bash
+git clone https://github.com/ypchoi/councilroom.git
+cd councilroom
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cd frontend && npm install && npm run build   # bundles into backend/councilroom/static
 ```
 
-## Runtime files
-
-Everything lives in one directory (override with `COUNCILROOM_HOME`):
-
-```text
-~/.councilroom/
-├── councilroom.db   rooms, messages, runs, per-room provider session ids
-├── config.yaml      auth, council members, chairman, timeouts, provider models
-├── uploads/         attachments, uploads/<attachment_id>/<id>.<ext>
-├── runs/
-└── logs/
-```
-
-The directory is `0700`, `config.yaml` is `0600`, uploads are stored non-executable under generated
-ids — client filenames are never used as paths. To back up, keep `councilroom.db` and `uploads/`
-(use `sqlite3 councilroom.db "VACUUM INTO 'backup.db'"` while the service is running).
-
----
-
-## Running as a service
+Then:
 
 ```bash
-scripts/install-service.sh     # registers a systemd --user unit and starts it
-scripts/restart.sh             # restart (add --build to rebuild the frontend first)
-scripts/restart.sh --build
-journalctl --user -u councilroom -f
+.venv/bin/councilroom doctor   # check CLIs, auth and storage
+.venv/bin/councilroom serve    # http://127.0.0.1:8420
 ```
 
-The unit sets `Restart=always`, so a crash is recovered in ~3s. It also bakes in the directories
-where your provider CLIs actually live (`~/.local/bin`, nvm) — a systemd user service inherits
-almost no `PATH`, and without this `codex` and `agy` would not be found.
-
-**Surviving logout and reboot** needs lingering. The installer enables it for you when run from a
-terminal (sudo may ask for your password); if it could not, it prints the one command to run:
-
-```bash
-sudo loginctl enable-linger $USER
-```
-
-Without it, the service stops when your last login session ends. Enabling it starts the user
-manager at boot, so CouncilRoom comes up without anyone logging in. Verify with
-`loginctl show-user $USER -p Linger`.
-
-Host/port come from the environment at install time:
-
-```bash
-COUNCILROOM_HOST=127.0.0.1 COUNCILROOM_PORT=8420 scripts/install-service.sh
-```
-
-Docker is deliberately not used: the authenticated CLIs live on the host, and containerising would
-mean reinstalling all three inside the image and mounting their credential directories in.
-
-## Resetting state
-
-```bash
-scripts/reset.sh --db         # rooms, messages, runs, session ids
-scripts/reset.sh --uploads    # stored attachments
-scripts/reset.sh --auth       # CouncilRoom's own password + session secret
-scripts/reset.sh --all --yes
-```
-
-Everything is copied to `~/.councilroom/backups/<timestamp>/` first, and the service is stopped and
-restarted around the reset. **`--auth` does not sign out your CLIs** — `claude`, `codex` and `agy`
-keep their OAuth in their own directories, which CouncilRoom never touches. Confirm with
-`councilroom doctor` afterwards.
+`doctor` is the first thing to run and the first thing to check when a member stops answering: it
+reports, per provider, whether the CLI is installed and whether it is authenticated, and never
+displays credential contents.
 
 ---
 
@@ -166,12 +116,44 @@ a page a visitor may fetch.
 The drawer shows, per member: authentication state, the signed-in account, the model that will
 answer (including what the CLI defaults to), and how many calls CouncilRoom has made.
 
-Subscription quota (5h / 7d usage with reset times) is shown when the
-[claude-dashboard](https://github.com/anthropics/claude-code) plugin is installed — CouncilRoom
-shells out to its `check-usage --json` rather than reading OAuth tokens itself. Providers that
-report no quota say so instead of showing a fabricated number.
+Subscription quota (5h / 7d usage with reset times) is shown when the `claude-dashboard` plugin is
+installed — CouncilRoom shells out to its `check-usage --json` rather than reading OAuth tokens
+itself. Providers that report no quota say so instead of showing a fabricated number.
 
 ---
+
+## Running as a service
+
+```bash
+scripts/install-service.sh     # registers a systemd --user unit and starts it
+scripts/restart.sh             # restart (add --build to rebuild the frontend first)
+scripts/restart.sh --build
+journalctl --user -u councilroom -f
+```
+
+The unit sets `Restart=always`, so a crash is recovered in ~3s. It also bakes in the directories
+where your provider CLIs actually live (`~/.local/bin`, nvm) — a systemd user service inherits
+almost no `PATH`, and without this `codex` and `agy` would not be found.
+
+**Surviving logout and reboot** needs lingering. The installer enables it for you when run from a
+terminal (sudo may ask for your password); if it could not, it prints the one command to run:
+
+```bash
+sudo loginctl enable-linger $USER
+```
+
+Without it, the service stops when your last login session ends. Enabling it starts the user
+manager at boot, so CouncilRoom comes up without anyone logging in. Verify with
+`loginctl show-user $USER -p Linger`.
+
+Host/port come from the environment at install time:
+
+```bash
+COUNCILROOM_HOST=127.0.0.1 COUNCILROOM_PORT=8420 scripts/install-service.sh
+```
+
+Docker is deliberately not used: the authenticated CLIs live on the host, and containerising would
+mean reinstalling all three inside the image and mounting their credential directories in.
 
 ## Authentication
 
@@ -247,7 +229,51 @@ Each distinct Access identity becomes a separate CouncilRoom user with its own r
 SSE survives Cloudflare: the stream sends a keepalive every 15s (under the 100s idle timeout) and
 sets `X-Accel-Buffering: no`.
 
+## Runtime files
+
+Everything lives in one directory (override with `COUNCILROOM_HOME`):
+
+```text
+~/.councilroom/
+├── councilroom.db   rooms, messages, runs, per-room provider session ids
+├── config.yaml      auth, council members, chairman, timeouts, provider models
+├── uploads/         attachments, uploads/<attachment_id>/<id>.<ext>
+├── runs/
+└── logs/
+```
+
+To back up, keep `councilroom.db` and `uploads/` (use
+`sqlite3 councilroom.db "VACUUM INTO 'backup.db'"` while the service is running).
+
+## Resetting state
+
+```bash
+scripts/reset.sh --db         # rooms, messages, runs, session ids
+scripts/reset.sh --uploads    # stored attachments
+scripts/reset.sh --auth       # CouncilRoom's own password + session secret
+scripts/reset.sh --all --yes
+```
+
+Everything is copied to `~/.councilroom/backups/<timestamp>/` first, and the service is stopped and
+restarted around the reset. **`--auth` does not sign out your CLIs** — `claude`, `codex` and `agy`
+keep their OAuth in their own directories, which CouncilRoom never touches. Confirm with
+`councilroom doctor` afterwards.
+
 ---
+
+## Security
+
+* **Provider credentials stay with the provider.** `claude`, `codex` and `agy` each keep their own
+  OAuth in their own directory. CouncilRoom never reads, copies or stores any of it, and nothing
+  under `~/.councilroom/` is a provider credential.
+* `~/.councilroom/` is `0700` and `config.yaml` is `0600`.
+* Uploads are stored non-executable under generated ids — client filenames are never used as paths.
+* Every room access is checked against its owner; a share token is the whole credential for that
+  one room and is revocable.
+* Passwords are stored as pbkdf2-sha256 hashes, never in plaintext.
+* Provider commands are executed as argv arrays, never through a shell.
+* See [Authentication](#authentication) for what each auth mode does and does not protect —
+  `disabled` and `proxy` both assume something in front of CouncilRoom.
 
 ## Development
 
