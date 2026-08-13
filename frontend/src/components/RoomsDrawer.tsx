@@ -115,12 +115,14 @@ export default function RoomsDrawer({
                       {room.title}
                     </button>
                     <button
-                      className="rounded px-1.5 py-2 text-slate-500 hover:text-slate-200"
+                      className={`shrink-0 rounded p-2.5 hover:bg-edge hover:text-slate-100 ${
+                        menu === room.id ? "bg-edge text-slate-100" : "text-slate-400"
+                      }`}
                       onClick={() => setMenu(menu === room.id ? null : room.id)}
                       aria-label={`Actions for ${room.title}`}
                       aria-expanded={menu === room.id}
                     >
-                      <Icon name="more" className="h-[18px] w-[18px]" />
+                      <Icon name="more" strokeWidth={2.5} />
                     </button>
                   </div>
 
@@ -131,10 +133,10 @@ export default function RoomsDrawer({
                         href={shareUrl(room.share_token)}
                         target="_blank"
                         rel="noreferrer noopener"
-                        className="truncate text-accent hover:underline"
+                        className="shrink-0 text-accent hover:underline"
                         title={shareUrl(room.share_token)}
                       >
-                        {room.share_token}
+                        {room.share_token.slice(0, 6)}…
                       </a>
                     )}
                   </div>

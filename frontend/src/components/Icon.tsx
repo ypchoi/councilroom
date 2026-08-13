@@ -38,17 +38,26 @@ const paths: Record<IconName, string> = {
   "chevron-right": "M9.5 6l6 6-6 6",
   "chevron-down": "M6 9.5l6 6 6-6",
   refresh: "M20.5 12a8.5 8.5 0 1 1-2.5-6|M20.5 3v5h-5",
-  more: "M5.5 12h.01|M12 12h.01|M18.5 12h.01",
+  more: "M12 5.5h.01|M12 12h.01|M12 18.5h.01",
 };
 
-export default function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
+export default function Icon({
+  name,
+  className = "h-5 w-5",
+  // Dots carry no line to be seen by, so an icon made of them may ask for more.
+  strokeWidth = 1.75,
+}: {
+  name: IconName;
+  className?: string;
+  strokeWidth?: number;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
       className={`shrink-0 ${className}`}
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
