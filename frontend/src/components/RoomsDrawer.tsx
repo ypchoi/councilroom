@@ -119,40 +119,52 @@ export default function RoomsDrawer({
                 />
               ) : (
                 <>
-                  <div className="flex items-center gap-1">
-                    <button
-                      className={`min-w-0 flex-1 truncate rounded px-2 py-2 text-left text-[15px] sm:text-sm ${
-                        room.id === activeId ? "bg-edge" : ""
-                      }`}
-                      onClick={() => onSelect(room.id)}
-                    >
-                      {room.title}
-                    </button>
+                  {/* Both lines are the room, so both lines light up and both
+                      answer a click. The row carries the click rather than the
+                      title alone; the title stays a button so a keyboard can
+                      still reach it, and its click bubbles up to here. */}
+                  <div
+                    className={`flex cursor-pointer items-center gap-1 rounded transition-colors ${
+                      room.id === activeId ? "bg-edge" : "hover:bg-edge/60"
+                    }`}
+                    onClick={() => onSelect(room.id)}
+                  >
+                    <div className="min-w-0 flex-1 px-2 py-1.5">
+                      <button className="block w-full truncate text-left text-[15px] sm:text-sm">
+                        {room.title}
+                      </button>
+                      <div className="flex items-baseline gap-2 text-[11px] text-slate-500">
+                        <span className="shrink-0">{localTime(room.updated_at)}</span>
+                        {room.share_token && (
+                          <a
+                            href={shareUrl(room.share_token)}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="shrink-0 text-accent hover:underline"
+                            title={shareUrl(room.share_token)}
+                            // The link is its own destination, not a way into the room.
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {room.share_token.slice(0, 6)}…
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    {/* Centred by the row's own items-center: it belongs to both
+                        lines, not to the title. */}
                     <button
                       className={`shrink-0 rounded p-2.5 hover:bg-edge hover:text-slate-100 ${
                         menu === room.id ? "bg-edge text-slate-100" : "text-slate-400"
                       }`}
-                      onClick={() => setMenu(menu === room.id ? null : room.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenu(menu === room.id ? null : room.id);
+                      }}
                       aria-label={`Actions for ${room.title}`}
                       aria-expanded={menu === room.id}
                     >
                       <Icon name="more" strokeWidth={2.5} />
                     </button>
-                  </div>
-
-                  <div className="flex items-baseline gap-2 px-2 text-[11px] text-slate-500">
-                    <span className="shrink-0">{localTime(room.updated_at)}</span>
-                    {room.share_token && (
-                      <a
-                        href={shareUrl(room.share_token)}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="shrink-0 text-accent hover:underline"
-                        title={shareUrl(room.share_token)}
-                      >
-                        {room.share_token.slice(0, 6)}…
-                      </a>
-                    )}
                   </div>
 
                   {/* In flow, not floating: a menu absolutely placed on the last
