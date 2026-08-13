@@ -64,9 +64,20 @@ def bus_for(run_id: str) -> RunBus:
 # --------------------------------------------------------------------------
 # prompts
 # --------------------------------------------------------------------------
+# A room remembers, and that is the trap: once an answer here reported something
+# impossible — a search that was refused, a tool that was missing — the sentence
+# stays in the transcript and in the resumed session, and a model will follow its
+# own past words over what it can actually do on this turn.
+STALE_CLAIMS = (
+    "Earlier turns are context, not constraints: a limit reported in one of them "
+    "may no longer hold, so decide what you can do by trying it now, not by what "
+    "was said then."
+)
+
 MEMBER_INSTRUCTIONS = (
     "You are answering a user's question directly, as a knowledgeable assistant. "
-    "Answer the question itself; do not modify files or ask for confirmation."
+    "Answer the question itself; do not modify files or ask for confirmation. "
+    f"{STALE_CLAIMS}"
 )
 
 REVIEW_INSTRUCTIONS = """You are reviewing anonymous answers written by other assistants to the question below.
@@ -74,10 +85,14 @@ Evaluate: factual correctness, reasoning quality, missing considerations, unsupp
 useful unique insights, and disagreements between the answers.
 Be specific and concise. Do not guess who wrote which answer."""
 
-CHAIRMAN_INSTRUCTIONS = """You are the Chairman of a council of AI assistants.
+CHAIRMAN_INSTRUCTIONS = f"""You are the Chairman of a council of AI assistants.
 Using the independent answers below, produce ONE coherent final answer for the user.
 
+{STALE_CLAIMS}
+
 Requirements:
+- the answers below are your material: the final answer is built from them, and
+  they outrank anything an earlier turn of this conversation says
 - identify consensus
 - identify disagreements and resolve them where the evidence allows
 - preserve useful minority observations
