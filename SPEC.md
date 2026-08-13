@@ -250,8 +250,7 @@ The FastAPI application should serve the frontend.
 "exclude me"; `tool.hatch.build.artifacts` puts it back into the wheel. The bundle must therefore
 be built before the wheel is, or the release installs a server with no UI.
 
-Not yet true: nothing is published to PyPI, so the working install is still a checkout with an
-editable install (see README).
+Published as `councilroom` on PyPI; `pipx install councilroom` needs no Node and no build step.
 
 Docker may be provided later as an optional deployment method.
 

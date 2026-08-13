@@ -17,21 +17,22 @@ member's own response still one click away](https://raw.githubusercontent.com/yp
 ## Requirements
 
 * **Linux.** The app needs no more than a POSIX shell; the service scripts assume systemd.
-* **Python 3.12+**, and **Node 22+** to build the frontend.
+* **Python 3.12+**. Node 22+ as well, but only to build the frontend from a checkout.
 * **The provider CLIs, already signed in** — `claude`, `codex`, `agy`. CouncilRoom never logs them
   in for you and never sees how they are logged in. Two working members are enough to reach the
   default quorum, so a missing third is not a blocker.
 
 ## Install
 
-CouncilRoom is not on PyPI yet. Once it is, one line will do it — the wheel carries the built
-frontend:
-
 ```bash
-pipx install councilroom       # not published yet; use the checkout below for now
+pipx install councilroom
+councilroom doctor   # check CLIs, auth and storage
+councilroom serve    # http://127.0.0.1:8420
 ```
 
-Until then, install from a checkout:
+The frontend ships built inside the package, so this needs no Node and no build step.
+
+From a checkout instead — for development, or to run the UI from source:
 
 ```bash
 git clone https://github.com/ypchoi/councilroom.git
@@ -39,13 +40,7 @@ cd councilroom
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cd frontend && npm install && npm run build   # bundles into backend/councilroom/static
-```
-
-Then:
-
-```bash
-.venv/bin/councilroom doctor   # check CLIs, auth and storage
-.venv/bin/councilroom serve    # http://127.0.0.1:8420
+cd .. && .venv/bin/councilroom serve
 ```
 
 `doctor` is the first thing to run and the first thing to check when a member stops answering: it
