@@ -6,7 +6,7 @@ type Pending = { key: string; file: File; preview?: string };
 type Props = {
   busy: boolean;
   maxFiles: number;
-  /** Chosen per question, not per room — so it belongs beside Send. */
+  /** Chosen per question, not per room — so it belongs beside Ask. */
   mode: "quick" | "deep";
   onMode: (mode: "quick" | "deep") => void;
   /** Uploads the files and sends the message; rejects to keep the draft intact. */
@@ -73,7 +73,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
 
   return (
     <div className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      {/* Same column as the conversation, so Send sits under the answers. */}
+      {/* Same column as the conversation, so Ask sits under the answers. */}
       <div className="mx-auto max-w-3xl">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
       {pending.length > 0 && (
@@ -168,7 +168,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
         <textarea
           className="max-h-40 min-h-11 flex-1 resize-none overscroll-contain rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
           rows={1}
-          placeholder={sending ? "Sending…" : "Ask Council…"}
+          placeholder={sending ? "Asking…" : "Ask Council…"}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -199,7 +199,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
           onClick={send}
           disabled={busy || sending || (!text.trim() && pending.length === 0)}
         >
-          {sending ? "…" : "Send"}
+          {sending ? "…" : "Ask"}
         </button>
       </div>
       </div>
