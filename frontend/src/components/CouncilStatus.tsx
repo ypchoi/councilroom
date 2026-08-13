@@ -27,11 +27,22 @@ function windowChip(slot: "5h" | "7d", iso: string | null): string {
   return hours > (slot === "5h" ? 5 : 24 * 7) ? resetIn(iso) : slot;
 }
 
-function Bar({ percent }: { percent: number }) {
+function Quota({ chip, percent, reset }: { chip: string; percent: number; reset: string }) {
   const tone = percent >= 90 ? "bg-red-500" : percent >= 70 ? "bg-amber-500" : "bg-emerald-500";
   return (
-    <div className="h-1.5 flex-1 overflow-hidden rounded bg-edge">
-      <div className={`h-full ${tone}`} style={{ width: `${Math.min(100, percent)}%` }} />
+    <div className="text-[12px] text-slate-400 sm:text-[11px]">
+      <div className="flex items-center gap-1.5">
+        <span className="w-8 shrink-0">{chip}</span>
+        {/* The number rides inside the bar and the reset drops below it: the
+            drawer is too narrow to spend a column on either. */}
+        <div className="relative h-4 flex-1 overflow-hidden rounded bg-edge">
+          <div className={`h-full ${tone}`} style={{ width: `${Math.min(100, percent)}%` }} />
+          <span className="absolute inset-0 grid place-items-center text-[10px] font-medium text-slate-100">
+            {percent}%
+          </span>
+        </div>
+      </div>
+      {reset && <p className="pl-[38px] text-slate-500">reset in {reset}</p>}
     </div>
   );
 }
@@ -60,26 +71,20 @@ function Member({ provider }: { provider: ProviderUsage }) {
       </p>
 
       {quota ? (
-        <div className="space-y-1 pt-1.5">
+        <div className="space-y-1.5 pt-1.5">
           {quota.five_hour_percent !== null && (
-            <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
-              <span className="w-8">{windowChip("5h", quota.five_hour_reset)}</span>
-              <Bar percent={quota.five_hour_percent} />
-              <span className="w-28 text-right sm:w-24">
-                {quota.five_hour_percent}% used
-                {quota.five_hour_reset ? ` · resets in ${resetIn(quota.five_hour_reset)}` : ""}
-              </span>
-            </div>
+            <Quota
+              chip={windowChip("5h", quota.five_hour_reset)}
+              percent={quota.five_hour_percent}
+              reset={resetIn(quota.five_hour_reset)}
+            />
           )}
           {quota.seven_day_percent !== null && (
-            <div className="flex items-center gap-2 text-[12px] text-slate-400 sm:text-[11px]">
-              <span className="w-8">{windowChip("7d", quota.seven_day_reset)}</span>
-              <Bar percent={quota.seven_day_percent} />
-              <span className="w-28 text-right sm:w-24">
-                {quota.seven_day_percent}% used
-                {quota.seven_day_reset ? ` · resets in ${resetIn(quota.seven_day_reset)}` : ""}
-              </span>
-            </div>
+            <Quota
+              chip={windowChip("7d", quota.seven_day_reset)}
+              percent={quota.seven_day_percent}
+              reset={resetIn(quota.seven_day_reset)}
+            />
           )}
         </div>
       ) : (
