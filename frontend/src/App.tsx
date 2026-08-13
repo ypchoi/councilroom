@@ -136,7 +136,10 @@ export default function App() {
           if (event.event === "council.completed" || event.event === "council.failed") stage = "";
           // Each stage times itself, so a long synthesis is visibly moving too.
           const stageAt = stage === state.stage ? state.stageAt : Date.now();
-          return { ...current, [runId]: { ...state, live, stage, stageAt } };
+          // council.started names the chair before any member has answered, so
+          // the card can say whose synthesis is coming rather than only whose it was.
+          const chairman = event.chairman ?? state.chairman;
+          return { ...current, [runId]: { ...state, live, stage, stageAt, chairman } };
         });
 
         if (event.event === "council.completed" || event.event === "council.failed") {

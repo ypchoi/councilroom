@@ -3,7 +3,14 @@ import { attachmentUrl, localTime, type Message, type Provider, type RunView } f
 import Attachments from "./Attachments";
 import CouncilAnswer, { type LiveStatus } from "./CouncilAnswer";
 
-export type RunState = { run: RunView | null; live: LiveStatus; stage: string; stageAt: number };
+export type RunState = {
+  run: RunView | null;
+  live: LiveStatus;
+  stage: string;
+  stageAt: number;
+  /** Named by council.started, so the chair shows before the run row exists. */
+  chairman?: string;
+};
 
 /** How far the list must be pulled past its top before releasing reloads. */
 const PULL_TO_REFRESH = 60;
@@ -95,6 +102,7 @@ export default function Conversation({
             live={runFor(message)?.live ?? {}}
             stage={runFor(message)?.stage ?? ""}
             stageAt={runFor(message)?.stageAt ?? 0}
+            chairman={runFor(message)?.chairman}
             storedAnswer={message.content}
             providers={providers}
             onRetry={
@@ -112,6 +120,7 @@ export default function Conversation({
           live={pending.live}
           stage={pending.stage}
           stageAt={pending.stageAt}
+          chairman={pending.chairman}
           providers={providers}
           onRetry={
             onRetry && pending.run ? (chairman) => onRetry(pending.run!.id, chairman) : undefined

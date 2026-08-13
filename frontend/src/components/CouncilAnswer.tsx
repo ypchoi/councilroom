@@ -19,6 +19,8 @@ type Props = {
   storedAnswer?: string;
   /** When the answer was recorded; absent while the run is still in flight. */
   at?: string;
+  /** The chair as the live stream named it, before the run row is loaded. */
+  chairman?: string;
   providers: Provider[];
   /** Absent behind a share link, where nothing may be retried. */
   onRetry?: (chairman?: string) => void;
@@ -33,6 +35,7 @@ export default function CouncilAnswer({
   stageAt,
   storedAnswer,
   at,
+  chairman,
   providers,
   onRetry,
 }: Props) {
@@ -88,8 +91,17 @@ export default function CouncilAnswer({
     // own sides, the way a conversation reads.
     <div className="mr-auto max-w-[90%] rounded-2xl border border-edge bg-panel p-3">
       <div className="flex items-baseline justify-between pb-2 text-xs text-slate-500">
-        <span className="tracking-widest">COUNCIL</span>
-        {at && <span className="text-[11px]">{localTime(at)}</span>}
+        <span className="truncate tracking-widest">
+          COUNCIL
+          {/* Who wrote this particular answer: with a rotating chair, naming the
+              council is no longer enough to say whose synthesis this is. */}
+          {(run?.chairman ?? chairman) && (
+            <span className="pl-2 tracking-normal">
+              - chairman is {labelOf(run?.chairman ?? chairman!)}
+            </span>
+          )}
+        </span>
+        {at && <span className="shrink-0 pl-2 text-[11px]">{localTime(at)}</span>}
       </div>
 
       <ul className="space-y-1.5 text-[15px] sm:text-sm">
