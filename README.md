@@ -60,6 +60,10 @@ selected) succeed, synthesis is skipped and the provider errors are shown with a
 the Chairman fails you can retry, or promote a different provider to Chairman, without losing the
 individual responses.
 
+Both members and the Chairman reply in the same language the question was asked in — English
+question, English answer; Korean question, Korean answer — so the Council Answer stays consistent
+with what was asked.
+
 ## Conversation context
 
 Each member keeps its own provider-side session per room and resumes it on follow-ups
@@ -89,6 +93,10 @@ attachments` rather than failing. The other two members still see them.
 Each room has its own URL, `/r/<id>`, so it can be bookmarked; `/` is an empty draft and a room is
 only created when you send. The room list supports search, inline rename and delete-all. Ids are
 `uuid4().hex`, and every room access is checked against its owner.
+
+While one room is deliberating you can open another room or start a **New room** and ask something
+else — the first run keeps streaming in the background, and its answer is waiting when you come
+back. **Ask** is gated per-room, so a busy Room A does not lock the composer in Room B.
 
 ## Share links
 

@@ -22,7 +22,8 @@ export type IconName =
   | "panel-open"
   | "refresh"
   | "copy"
-  | "more";
+  | "more"
+  | "star";
 
 // Multiple subpaths separated by "|"; a zero-length segment ("h.01") is a dot.
 const paths: Record<IconName, string> = {
@@ -51,6 +52,9 @@ const paths: Record<IconName, string> = {
   copy:
     "M10 8.5h9.5A1.5 1.5 0 0 1 21 10v9.5a1.5 1.5 0 0 1-1.5 1.5H10a1.5 1.5 0 0 1-1.5-1.5V10A1.5 1.5 0 0 1 10 8.5Z|M5.5 15.5H4.5A1.5 1.5 0 0 1 3 14V4.5A1.5 1.5 0 0 1 4.5 3H14a1.5 1.5 0 0 1 1.5 1.5v1",
   more: "M12 5.5h.01|M12 12h.01|M12 18.5h.01",
+  // Regular 5-point star, outer radius 10 / inner radius 4, centred at 12,12.
+  // Drawn as a filled shape — the icon's fill prop is what makes it yellow.
+  star: "M12 2 14.4 8.8 21.5 8.9 15.8 13.2 17.9 20.1 12 16 6.1 20.1 8.2 13.2 2.5 8.9 9.6 8.8Z",
 };
 
 export default function Icon({
@@ -58,16 +62,20 @@ export default function Icon({
   className = "h-5 w-5",
   // Dots carry no line to be seen by, so an icon made of them may ask for more.
   strokeWidth = 1.75,
+  // Line icons stay hollow; a filled badge (like the chairman star) asks for
+  // "currentColor" so the CSS text-* colour paints the shape.
+  fill = "none",
 }: {
   name: IconName;
   className?: string;
   strokeWidth?: number;
+  fill?: string;
 }) {
   return (
     <svg
       viewBox="0 0 24 24"
       className={`shrink-0 ${className}`}
-      fill="none"
+      fill={fill}
       stroke="currentColor"
       strokeWidth={strokeWidth}
       strokeLinecap="round"

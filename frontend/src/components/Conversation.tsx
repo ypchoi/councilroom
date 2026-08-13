@@ -8,6 +8,9 @@ export type RunState = {
   live: LiveStatus;
   stage: string;
   stageAt: number;
+  /** The room this run belongs to — carried so runs from other rooms can keep
+      streaming in the background without being mistaken for the current one. */
+  roomId: string;
   /** Named by council.started, so the chair shows before the run row exists. */
   chairman?: string;
 };
@@ -108,10 +111,10 @@ export default function Conversation({
           // answer beside it starts, so the eye keeps one margin to return to.
           <div
             key={message.id}
-            className="ml-auto w-fit max-w-[85%] rounded-2xl bg-mine px-3.5 py-2.5 sm:mr-auto sm:ml-0"
+            className="ml-auto w-fit max-w-[85%] overflow-hidden rounded-2xl bg-mine px-3.5 py-2.5 sm:mr-auto sm:ml-0"
           >
             <Attachments attachments={message.attachments} urlFor={urlFor} />
-            <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
+            <p className="break-words whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
               {message.content}
             </p>
             <p className="pt-1 text-right text-[11px] text-slate-400">{localTime(message.created_at)}</p>

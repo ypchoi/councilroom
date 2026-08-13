@@ -58,18 +58,14 @@ export default function RoomsDrawer({
       }`}
       onClick={(e) => e.stopPropagation()}
     >
-        <div className="flex items-center gap-2">
-          <button
-            className="flex flex-1 items-center justify-center gap-2 rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm"
-            onClick={onCreate}
-          >
-            New room
-            <Icon name="pencil" className="h-4 w-4" />
-          </button>
+        {/* Product name up top: the sidebar owns the identity, the main header
+            names the room. */}
+        <div className="flex items-center justify-between gap-2 px-1 pb-1">
+          <h1 className="text-lg font-semibold tracking-widest">COUNCIL ROOM</h1>
           {/* Not a cross: the list does not go away, it folds back to the edge it
               came from, and the same picture pointing the other way brings it back. */}
           <button
-            className="shrink-0 rounded p-2.5 text-slate-400 hover:bg-edge hover:text-slate-100"
+            className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-edge hover:text-slate-100"
             onClick={onClose}
             aria-label={pinned ? "Hide the room list" : "Close the room list"}
             title={pinned ? "Hide the room list" : "Close the room list"}
@@ -78,6 +74,16 @@ export default function RoomsDrawer({
           </button>
         </div>
 
+        {/* Ask new sits at the head of the list, sized like an item so it reads as
+            "add one more" rather than a competing primary action. */}
+        <button
+          className="mt-1 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[15px] text-slate-200 hover:bg-edge/60 sm:text-sm"
+          onClick={onCreate}
+        >
+          <Icon name="pencil" className="h-4 w-4 text-slate-400" />
+          Ask new
+        </button>
+
         <input
           className="mt-2 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
           placeholder="Search rooms…"
@@ -85,21 +91,9 @@ export default function RoomsDrawer({
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <div className="flex items-center justify-between px-1 pt-2 text-[12px] text-slate-500">
-          <span>
-            {visible.length} room{visible.length === 1 ? "" : "s"}
-            {query.trim() && ` of ${rooms.length}`}
-          </span>
-          {rooms.length > 0 && (
-            <button
-              className="text-red-400 hover:underline disabled:opacity-40"
-              onClick={() => {
-                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
-              }}
-            >
-              Delete all
-            </button>
-          )}
+        <div className="px-1 pt-2 text-[12px] text-slate-500">
+          {visible.length} room{visible.length === 1 ? "" : "s"}
+          {query.trim() && ` of ${rooms.length}`}
         </div>
 
         <ul className="mt-1 flex-1 divide-y divide-edge overflow-y-auto">
@@ -124,7 +118,7 @@ export default function RoomsDrawer({
                       title alone; the title stays a button so a keyboard can
                       still reach it, and its click bubbles up to here. */}
                   <div
-                    className={`flex cursor-pointer items-center gap-1 rounded transition-colors ${
+                    className={`group flex cursor-pointer items-center gap-1 rounded transition-colors ${
                       room.id === activeId ? "bg-edge" : "hover:bg-edge/60"
                     }`}
                     onClick={() => onSelect(room.id)}
@@ -151,10 +145,17 @@ export default function RoomsDrawer({
                       </div>
                     </div>
                     {/* Centred by the row's own items-center: it belongs to both
-                        lines, not to the title. */}
+                        lines, not to the title.
+
+                        Hidden on desktop until the row is hovered or the menu is
+                        open — a clean list until the reader signals interest.
+                        Touch has no hover, so the arbitrary variant
+                        `pointer:coarse` keeps it always visible there. */}
                     <button
-                      className={`shrink-0 rounded p-2.5 hover:bg-edge hover:text-slate-100 ${
-                        menu === room.id ? "bg-edge text-slate-100" : "text-slate-400"
+                      className={`shrink-0 rounded p-2.5 transition-opacity hover:bg-edge hover:text-slate-300 ${
+                        menu === room.id
+                          ? "bg-edge text-slate-300 opacity-100"
+                          : "text-slate-600 opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(pointer:coarse)]:opacity-100"
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -217,13 +218,29 @@ export default function RoomsDrawer({
 
         {/* Account and council standing moved behind here: the drawer is for
             picking a room, and both were pushing the list into a sliver. */}
-        <button
-          className="mt-2 flex shrink-0 items-center gap-2 border-t border-edge pt-3 text-[15px] text-slate-300 hover:text-white sm:text-sm"
-          onClick={onSettings}
-        >
-          <Icon name="settings" className="h-4 w-4" />
-          Settings
-        </button>
+        <div className="mt-2 flex shrink-0 items-center justify-between gap-3 border-t border-edge pt-3">
+          <button
+            className="flex items-center gap-2 text-[15px] text-slate-300 hover:text-white sm:text-sm"
+            onClick={onSettings}
+          >
+            <Icon name="settings" className="h-4 w-4" />
+            Settings
+          </button>
+          {/* Bottom, not top: a destructive action does not sit above the list it
+              would wipe. Kept subtle — the confirm dialog is where the guarding
+              happens, not the button's weight. */}
+          {rooms.length > 0 && (
+            <button
+              className="flex items-center gap-1.5 text-[13px] text-red-400 hover:text-red-300 sm:text-xs"
+              onClick={() => {
+                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
+              }}
+            >
+              <Icon name="trash" className="h-4 w-4" />
+              Delete all
+            </button>
+          )}
+        </div>
     </nav>
   );
 

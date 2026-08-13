@@ -38,7 +38,7 @@ export default function MemberResponses({ run }: { run: RunView | null }) {
       {members
         .filter((r) => r.provider === open)
         .map((r) => (
-          <div key={r.provider} className="mt-2 rounded-xl bg-ink p-2.5">
+          <div key={r.provider} className="mt-2 overflow-hidden rounded-xl bg-ink p-2.5">
             <p className="flex items-center justify-between gap-2 text-xs text-slate-400">
               <span className="truncate">
                 {r.label}
@@ -56,7 +56,9 @@ export default function MemberResponses({ run }: { run: RunView | null }) {
               {r.content ? (
                 <Markdown>{r.content}</Markdown>
               ) : (
-                <p className="text-[15px] text-red-400 sm:text-sm">{r.error}</p>
+                // break-all: errors are technical (URLs, ids, JSON blobs), so
+                // breaking mid-token is fine and guarantees no horizontal leak.
+                <p className="break-all text-[15px] text-red-400 sm:text-sm">{r.error}</p>
               )}
             </div>
           </div>

@@ -87,21 +87,18 @@ export default function CouncilAnswer({
   const ticking = (start?: number) =>
     start ? ` (${Math.max(0, Math.floor((now - start) / 1000))}s)` : "";
 
+  // The chair is either already on the loaded run or was named up front by the
+  // council.started event, so the star can appear before agent rows arrive.
+  const chairProvider = run?.chairman ?? chairman;
+
   return (
     // Full width: the card holds member rows, tables and code, and it is the
     // prose inside that is kept to a readable measure, not the card.
-    <div className="rounded-2xl border border-edge bg-panel p-3">
+    // overflow-hidden is the last-resort clip — a stray unbreakable token in an
+    // answer or an error blob still cannot push the card past its own width.
+    <div className="overflow-hidden rounded-2xl border border-edge bg-panel p-3">
       <div className="flex items-baseline justify-between pb-2 text-xs text-slate-500">
-        <span className="truncate tracking-widest">
-          COUNCIL
-          {/* Who wrote this particular answer: with a rotating chair, naming the
-              council is no longer enough to say whose synthesis this is. */}
-          {(run?.chairman ?? chairman) && (
-            <span className="pl-2 tracking-normal">
-              - chairman is {labelOf(run?.chairman ?? chairman!)}
-            </span>
-          )}
-        </span>
+        <span className="truncate tracking-widest">COUNCIL MEMBERS</span>
         <span className="flex shrink-0 items-center gap-2 pl-2">
           {answer && <CopyButton text={answer} label="the Council answer" />}
           {at && <span className="text-[11px]">{localTime(at)}</span>}
@@ -111,7 +108,19 @@ export default function CouncilAnswer({
       <ul className="space-y-1.5 text-[15px] sm:text-sm">
         {rows.map(([provider, status]) => (
           <li key={provider} className="flex items-center gap-2">
-            <span className="w-32 truncate sm:w-28">{labelOf(provider)}</span>
+            {/* The name and the chair badge stay one unit — the star hugs the
+                label so the reader sees who chaired without hunting a column. */}
+            <span className="flex w-32 min-w-0 items-center gap-1 sm:w-28">
+              <span className="truncate">{labelOf(provider)}</span>
+              {provider === chairProvider && (
+                <Icon
+                  name="star"
+                  className="h-3.5 w-3.5 text-yellow-400"
+                  fill="currentColor"
+                  strokeWidth={1}
+                />
+              )}
+            </span>
             {status.state === "running" ? (
               <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-slate-400" />
             ) : (
@@ -138,7 +147,7 @@ export default function CouncilAnswer({
 
       {run?.status === "failed" && (
         <div className="mt-3 rounded-xl border border-red-900 bg-red-950/40 p-3 text-sm">
-          <p className="text-red-300">{run.error}</p>
+          <p className="break-all text-red-300">{run.error}</p>
           {onRetry && (
             <div className="mt-2 flex flex-wrap gap-2">
               <button className="rounded border border-edge px-2 py-1 text-xs" onClick={() => onRetry()}>
@@ -178,9 +187,9 @@ export default function CouncilAnswer({
           </button>
           {openReviews &&
             run!.peer_reviews.map((review, i) => (
-              <div key={i} className="mt-2 rounded-xl bg-ink p-2">
+              <div key={i} className="mt-2 overflow-hidden rounded-xl bg-ink p-2">
                 <p className="text-xs text-slate-400">{labelOf(review.reviewer)}</p>
-                <div className="pt-1">{review.content ? <Markdown>{review.content}</Markdown> : <p className="text-[15px] text-red-400 sm:text-sm">{review.error}</p>}</div>
+                <div className="pt-1">{review.content ? <Markdown>{review.content}</Markdown> : <p className="break-all text-[15px] text-red-400 sm:text-sm">{review.error}</p>}</div>
               </div>
             ))}
         </div>

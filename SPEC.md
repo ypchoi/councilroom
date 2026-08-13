@@ -652,8 +652,13 @@ The Chairman should:
 4. preserve useful minority observations
 5. avoid blindly majority-voting factual claims
 6. produce one coherent final answer
+7. write the final answer in the same language the user asked in
 
 Do not simply concatenate responses.
+
+The same language rule applies to member answers as well: each member replies in the
+language of the question, so the Chairman's synthesis stays consistent with what was
+asked. English question → English answer, Korean question → Korean answer.
 
 ---
 
@@ -812,6 +817,17 @@ Room
 
 Each room is addressable at `/r/<id>`; `/` is an empty draft and the room is only created when the
 first message is sent.
+
+### Concurrent deliberations
+
+A council run is not a modal state on the app. Once a question is sent in one room, the reader
+may open a different room, start a **New room**, or ask a follow-up somewhere else while the
+first deliberation is still streaming in the background. The composer's **Ask** button is gated
+per-room, not globally, so each room decides for itself whether another question can be sent yet.
+
+Runs are tracked by their own id, not by the room currently on screen, so switching rooms does not
+interrupt or lose a run. When the reader returns to a room whose run finished elsewhere, the
+completed answer is already on the server and is fetched with the room's messages.
 
 ### Share links
 

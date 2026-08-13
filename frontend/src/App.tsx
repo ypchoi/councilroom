@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   shareUrl,
@@ -47,7 +47,21 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const busy = Object.values(runs).some((r) => r.run === null || r.run.status === "running" || r.run.status === "pending");
+  // Per-room: another room can still be deliberating in the background without
+  // holding this room's Ask button hostage.
+  const busy = Object.values(runs).some(
+    (r) =>
+      r.roomId === roomId &&
+      (r.run === null || r.run.status === "running" || r.run.status === "pending")
+  );
+
+  // The follow() callback closes over the roomId at send time, but by the time a
+  // council completes the reader may be in a different room — this ref lets the
+  // callback read the *current* room without being recreated on every switch.
+  const roomIdRef = useRef(roomId);
+  useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
 
   useEffect(() => {
     api
@@ -79,12 +93,11 @@ export default function App() {
     api.messages(roomId).then(setMessages).catch((e) => setError(e.message));
   }, [roomId]);
 
-  // Back/forward between rooms.
+  // Back/forward between rooms. Runs stay in state — a deliberation started in
+  // another room keeps streaming into `runs` and is picked up again when the
+  // reader returns.
   useEffect(() => {
-    const onPop = () => {
-      setRoomId(roomFromPath());
-      setRuns({});
-    };
+    const onPop = () => setRoomId(roomFromPath());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -99,7 +112,8 @@ export default function App() {
       setRuns((current) => {
         const next = { ...current };
         for (const run of loaded) {
-          if (run && !next[run.id]) next[run.id] = { run, live: {}, stage: "", stageAt: 0 };
+          if (run && !next[run.id])
+            next[run.id] = { run, live: {}, stage: "", stageAt: 0, roomId: run.room_id };
         }
         return next;
       })
@@ -126,10 +140,13 @@ export default function App() {
   // null and the finished answer would never be loaded.
   const follow = useCallback(
     (runId: string, room: string) => {
-      setRuns((current) => ({ ...current, [runId]: { run: null, live: {}, stage: "Council deliberating…", stageAt: Date.now() } }));
+      setRuns((current) => ({
+        ...current,
+        [runId]: { run: null, live: {}, stage: "Council deliberating…", stageAt: Date.now(), roomId: room },
+      }));
       const stop = watchRun(runId, (event) => {
         setRuns((current) => {
-          const state = current[runId] ?? { run: null, live: {}, stage: "", stageAt: 0 };
+          const state = current[runId] ?? { run: null, live: {}, stage: "", stageAt: 0, roomId: room };
           const live = { ...state.live };
           let stage = state.stage;
           if (event.event === "agent.started" && event.provider)
@@ -154,7 +171,9 @@ export default function App() {
           api.run(runId).then((run) =>
             setRuns((current) => ({ ...current, [runId]: { ...current[runId], run, stage: "" } }))
           );
-          api.messages(room).then(setMessages);
+          // Only reload messages if the reader is still in the room this run
+          // belongs to; otherwise the [roomId] effect will refetch on return.
+          if (roomIdRef.current === room) api.messages(room).then(setMessages);
           api.rooms().then(setRooms);
         }
       });
@@ -183,7 +202,9 @@ export default function App() {
     });
     setError(null);
     follow(started.run_id, target);
-    await api.messages(target).then(setMessages);
+    // The reader might have already jumped to another room while the upload was
+    // in flight; only paint their own room's freshly-added user message.
+    if (roomIdRef.current === target) await api.messages(target).then(setMessages);
   }
 
   async function retry(runId: string, chairman?: string) {
@@ -199,7 +220,6 @@ export default function App() {
   function newRoom() {
     setRoomId(null);
     setMessages([]);
-    setRuns({});
     setDrawer(false);
     navigate(null);
   }
@@ -244,10 +264,14 @@ export default function App() {
     await api.deleteRoom(id);
     const remaining = rooms.filter((r) => r.id !== id);
     setRooms(remaining);
+    // Drop runs of the deleted room but leave runs from other rooms alone —
+    // they may still be streaming.
+    setRuns((current) =>
+      Object.fromEntries(Object.entries(current).filter(([, r]) => r.roomId !== id))
+    );
     if (roomId === id) {
       setRoomId(null);
       setMessages([]);
-      setRuns({});
       navigate(null);
     }
   }
@@ -305,7 +329,11 @@ export default function App() {
     return live ?? null;
   };
 
-  const pendingRun = Object.values(runs).find((r) => r.run === null || r.run.status !== "completed");
+  // Scoped to this room: another room's still-running deliberation should keep
+  // going in the background, not blink into the wrong conversation.
+  const pendingRun = Object.values(runs).find(
+    (r) => r.roomId === roomId && (r.run === null || r.run.status !== "completed")
+  );
   const activeRoom = rooms.find((r) => r.id === roomId) ?? null;
 
   // One list, two placements: pinned beside the room on a wide screen, and the
@@ -315,7 +343,6 @@ export default function App() {
     activeId: roomId,
     onSelect: (id: string) => {
       setRoomId(id);
-      setRuns({});
       setDrawer(false);
       navigate(id);
     },
@@ -372,7 +399,12 @@ export default function App() {
             <Icon name="panel-open" />
           </button>
         )}
-        <h1 className="flex-1 text-[17px] font-medium sm:text-base">CouncilRoom</h1>
+        {/* The room's title takes this place — the app's own name lives at the
+            top of the sidebar. An empty draft has no title yet, so name that state
+            directly rather than fall back to the product name. */}
+        <h1 className="flex-1 truncate text-[17px] font-medium sm:text-base">
+          {activeRoom?.title ?? "New room"}
+        </h1>
         {activeRoom && !activeRoom.share_token && (
           <button
             className="p-1.5 text-slate-300 hover:text-white"
