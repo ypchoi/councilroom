@@ -26,7 +26,7 @@ export default function SharedRoom({ token }: { token: string }) {
   // Every run here is finished, so there is no live state to go with it.
   const runFor = (message: Message) => {
     const run = (message.council_run_id && view.runs[message.council_run_id]) || null;
-    return run ? { run, live: {}, stage: "", stageAt: 0 } : null;
+    return run ? { run, live: {}, stage: "", stageAt: 0, roomId: run.room_id } : null;
   };
 
   return (

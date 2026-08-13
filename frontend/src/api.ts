@@ -31,6 +31,7 @@ export type AgentRunView = {
 
 export type RunView = {
   id: string;
+  room_id: string;
   message_id: string;
   mode: "quick" | "deep";
   status: "pending" | "running" | "completed" | "failed";
