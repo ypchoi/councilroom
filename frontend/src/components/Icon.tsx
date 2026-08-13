@@ -18,7 +18,8 @@ export type IconName =
   | "image"
   | "chevron-right"
   | "chevron-down"
-  | "refresh";
+  | "refresh"
+  | "more";
 
 // Multiple subpaths separated by "|"; a zero-length segment ("h.01") is a dot.
 const paths: Record<IconName, string> = {
@@ -37,6 +38,7 @@ const paths: Record<IconName, string> = {
   "chevron-right": "M9.5 6l6 6-6 6",
   "chevron-down": "M6 9.5l6 6 6-6",
   refresh: "M20.5 12a8.5 8.5 0 1 1-2.5-6|M20.5 3v5h-5",
+  more: "M5.5 12h.01|M12 12h.01|M18.5 12h.01",
 };
 
 export default function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { shareUrl, type Room } from "../api";
+import { localTime, shareUrl, type Room } from "../api";
 import CouncilStatus from "./CouncilStatus";
 import Icon from "./Icon";
 
@@ -37,6 +37,8 @@ export default function RoomsDrawer({
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  /** The room whose "…" menu is open — only ever one. */
+  const [menu, setMenu] = useState<string | null>(null);
 
   const visible = query.trim()
     ? rooms.filter((r) => r.title.toLowerCase().includes(query.trim().toLowerCase()))
@@ -88,11 +90,11 @@ export default function RoomsDrawer({
 
         <ul className="mt-1 flex-1 divide-y divide-edge overflow-y-auto">
           {visible.map((room) => (
-            <li key={room.id} className="flex flex-wrap items-center gap-1 py-0.5">
+            <li key={room.id} className="py-1">
               {editing === room.id ? (
                 <input
                   autoFocus
-                  className="flex-1 rounded bg-ink px-2 py-2.5 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
+                  className="w-full rounded bg-ink px-2 py-2.5 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onBlur={() => commit(room.id)}
@@ -103,51 +105,78 @@ export default function RoomsDrawer({
                 />
               ) : (
                 <>
-                  <button
-                    className={`flex-1 truncate rounded px-2 py-2.5 text-left text-[15px] sm:text-sm ${
-                      room.id === activeId ? "bg-edge" : ""
-                    }`}
-                    onClick={() => onSelect(room.id)}
-                  >
-                    {room.title}
-                  </button>
-                  <button
-                    className={`px-1.5 py-1 hover:text-slate-200 ${
-                      room.share_token ? "text-accent" : "text-slate-500"
-                    }`}
-                    onClick={() => (room.share_token ? onUnshare(room.id) : onShare(room.id))}
-                    aria-label={room.share_token ? `Stop sharing ${room.title}` : `Share ${room.title}`}
-                    title={room.share_token ? "Stop sharing" : "Create a public read-only link"}
-                  >
-                    <Icon name="link" className="h-[18px] w-[18px]" />
-                  </button>
-                  <button
-                    className="px-1.5 py-1 text-slate-500 hover:text-slate-200"
-                    onClick={() => {
-                      setDraft(room.title);
-                      setEditing(room.id);
-                    }}
-                    aria-label={`Rename ${room.title}`}
-                  >
-                    <Icon name="pencil" className="h-[18px] w-[18px]" />
-                  </button>
-                  <button
-                    className="px-1.5 py-1 text-slate-500 hover:text-red-400"
-                    onClick={() => onDelete(room.id)}
-                    aria-label={`Delete ${room.title}`}
-                  >
-                    <Icon name="trash" className="h-[18px] w-[18px]" />
-                  </button>
-                  {room.share_token && (
-                    <a
-                      href={shareUrl(room.share_token)}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="w-full truncate px-2 pb-1 text-[12px] text-accent hover:underline"
-                      title={shareUrl(room.share_token)}
+                  <div className="flex items-center gap-1">
+                    <button
+                      className={`min-w-0 flex-1 truncate rounded px-2 py-2 text-left text-[15px] sm:text-sm ${
+                        room.id === activeId ? "bg-edge" : ""
+                      }`}
+                      onClick={() => onSelect(room.id)}
                     >
-                      {room.share_token}
-                    </a>
+                      {room.title}
+                    </button>
+                    <button
+                      className="rounded px-1.5 py-2 text-slate-500 hover:text-slate-200"
+                      onClick={() => setMenu(menu === room.id ? null : room.id)}
+                      aria-label={`Actions for ${room.title}`}
+                      aria-expanded={menu === room.id}
+                    >
+                      <Icon name="more" className="h-[18px] w-[18px]" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-baseline gap-2 px-2 text-[11px] text-slate-500">
+                    <span className="shrink-0">{localTime(room.updated_at)}</span>
+                    {room.share_token && (
+                      <a
+                        href={shareUrl(room.share_token)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="truncate text-accent hover:underline"
+                        title={shareUrl(room.share_token)}
+                      >
+                        {room.share_token}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* In flow, not floating: a menu absolutely placed on the last
+                      room would be cut off by the list it scrolls inside. */}
+                  {menu === room.id && (
+                    <div className="mt-1 overflow-hidden rounded-lg border border-edge bg-ink text-[14px]">
+                      <button
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-edge"
+                        onClick={() => {
+                          setDraft(room.title);
+                          setEditing(room.id);
+                          setMenu(null);
+                        }}
+                      >
+                        <Icon name="pencil" className="h-4 w-4" />
+                        Rename
+                      </button>
+                      <button
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-edge"
+                        onClick={() => {
+                          if (room.share_token) onUnshare(room.id);
+                          else onShare(room.id);
+                          setMenu(null);
+                        }}
+                        title={room.share_token ? undefined : "Create a public read-only link"}
+                      >
+                        <Icon name="link" className="h-4 w-4" />
+                        {room.share_token ? "Stop sharing" : "Share"}
+                      </button>
+                      <button
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-red-400 hover:bg-edge"
+                        onClick={() => {
+                          onDelete(room.id);
+                          setMenu(null);
+                        }}
+                      >
+                        <Icon name="trash" className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
                   )}
                 </>
               )}
