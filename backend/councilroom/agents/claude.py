@@ -52,6 +52,11 @@ class ClaudeAgent(Agent):
     async def ask(
         self, prompt: str, attachments: list[Attachment], session_id: str | None = None
     ) -> AgentResponse:
+        # Granted here rather than left to whatever this machine's own settings
+        # happen to allow: headless has no one to ask, so a tool that is not
+        # allowed up front comes back as "I don't have permission to search".
+        # codex and agy search without being asked; only this CLI needs telling.
+        tools = ["WebSearch", "WebFetch"]
         argv = [self.executable, "-p", "--output-format", "json"]
         if session_id:
             argv += ["--resume", session_id]
@@ -61,7 +66,10 @@ class ClaudeAgent(Agent):
             argv += ["--effort", self.effort]
         if attachments:
             # Attachments live in their own directory; let Claude read them there.
-            argv += ["--add-dir", str(attachments[0].path.parent), "--allowed-tools", "Read"]
+            argv += ["--add-dir", str(attachments[0].path.parent)]
+            tools.append("Read")
+        # Variadic, so it goes last — the prompt arrives on stdin, not as a tail.
+        argv += ["--allowed-tools", *tools]
 
         started = time.monotonic()
         # The prompt goes over stdin: several claude flags are variadic and would

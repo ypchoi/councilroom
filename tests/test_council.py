@@ -349,6 +349,21 @@ async def test_a_provider_api_error_is_not_shown_as_json(monkeypatch):
     assert "{" not in response.error, "the JSON envelope must not reach the user"
 
 
+async def test_the_council_hands_claude_the_web(monkeypatch):
+    """Headless has no one to ask, so the tools must be allowed in the argv itself."""
+    from councilroom.agents import base, claude
+
+    seen: list[str] = []
+
+    async def fake_run_cli(argv, **kwargs):
+        seen[:] = argv
+        return base.CliResult(exit_code=0, stdout='{"result":"ok"}', stderr="")
+
+    monkeypatch.setattr(claude, "run_cli", fake_run_cli)
+    await claude.ClaudeAgent(timeout=5).ask("hi", [])
+    assert seen[-3:] == ["--allowed-tools", "WebSearch", "WebFetch"], seen
+
+
 async def test_the_app_shell_is_never_served_stale(client):
     """It names hashed bundles, so a cached copy survives a rebuild pointing at 404s."""
     response = await client.get("/")
