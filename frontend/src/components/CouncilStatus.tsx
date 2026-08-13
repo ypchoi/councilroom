@@ -102,16 +102,20 @@ function Member({ provider }: { provider: ProviderUsage }) {
 export default function CouncilStatus() {
   const [report, setReport] = useState<UsageReport | null>(cached);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function load(refresh: boolean) {
     setBusy(true);
+    setError(null);
     api
       .usage(refresh)
       .then((fresh) => {
         cached = fresh;
         setReport(fresh);
       })
-      .catch(() => {})
+      // Said out loud, not swallowed: with nothing rendered yet, a silent
+      // failure is a panel that pretends to still be loading.
+      .catch((e) => setError((e as Error).message))
       .finally(() => setBusy(false));
   }
 
@@ -122,19 +126,27 @@ export default function CouncilStatus() {
   if (!report) {
     return (
       <section className="border-t border-edge pt-3">
-        <h2 className="flex items-center gap-2 pb-2 text-xs tracking-widest text-slate-500">
-          COUNCIL
-          <span className="inline-block h-3 w-3 animate-spin rounded-full border border-slate-600 border-t-accent" />
-        </h2>
-        <ul className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="animate-pulse rounded-xl bg-ink p-3">
-              <div className="h-3 w-24 rounded bg-edge" />
-              <div className="mt-2 h-2 w-36 rounded bg-edge" />
-              <div className="mt-2 h-1.5 w-full rounded bg-edge" />
-            </li>
-          ))}
-        </ul>
+        <h2 className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</h2>
+        {/* Words, not grey boxes: probing spawns every CLI, and a wait this long
+            has to say it is a wait. */}
+        <p className="flex items-center gap-2 text-[13px] text-slate-500 sm:text-xs">
+          {error ? (
+            <>
+              <span className="text-red-400">{error}</span>
+              <button
+                className="rounded border border-edge px-1.5 py-0.5 hover:text-slate-200"
+                onClick={() => load(true)}
+              >
+                Retry
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-slate-600 border-t-accent" />
+              Loading… asking each CLI for its account and quota.
+            </>
+          )}
+        </p>
       </section>
     );
   }
@@ -158,6 +170,7 @@ export default function CouncilStatus() {
           <Member key={p.name} provider={p} />
         ))}
       </ul>
+      {error && <p className="pt-2 text-[12px] text-red-400">{error}</p>}
       <p className="pt-2 text-[10px] text-slate-600">
         {report.quota_source
           ? `quota via ${report.quota_source}`
