@@ -21,8 +21,14 @@ credentials are ever read, copied or stored by CouncilRoom.
 
 ## Install
 
-CouncilRoom is not on PyPI, and the frontend is built rather than committed, so install from a
-checkout:
+CouncilRoom is not on PyPI yet. Once it is, one line will do it — the wheel carries the built
+frontend:
+
+```bash
+pipx install councilroom       # not published yet; use the checkout below for now
+```
+
+Until then, install from a checkout:
 
 ```bash
 git clone https://github.com/ypchoi/councilroom.git
@@ -281,6 +287,17 @@ keep their OAuth in their own directories, which CouncilRoom never touches. Conf
 pytest                                      # API + council engine, stubbed providers
 cd frontend && npm run dev                  # Vite dev server, proxies /api to :8420
 cd frontend && npm run build                # bundles into backend/councilroom/static
+```
+
+### Release
+
+The wheel packages whatever `backend/councilroom/static/` holds at build time, so the bundle has to
+be built first — otherwise the release installs a server with no UI:
+
+```bash
+cd frontend && npm run build
+python -m build
+twine upload dist/*
 ```
 
 ## License

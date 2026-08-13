@@ -246,9 +246,12 @@ The React frontend should be compiled to static assets and bundled with the Pyth
 
 The FastAPI application should serve the frontend.
 
-Not yet true: `backend/councilroom/static/` is a build output and is gitignored, so the build
-backend excludes it and an installed wheel serves no UI. Until the bundle is packaged explicitly,
-the working install is a checkout with an editable install (see README).
+`backend/councilroom/static/` is a build output and is gitignored, which the build backend reads as
+"exclude me"; `tool.hatch.build.artifacts` puts it back into the wheel. The bundle must therefore
+be built before the wheel is, or the release installs a server with no UI.
+
+Not yet true: nothing is published to PyPI, so the working install is still a checkout with an
+editable install (see README).
 
 Docker may be provided later as an optional deployment method.
 

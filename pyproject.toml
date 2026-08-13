@@ -26,6 +26,11 @@ dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.27"]
 [project.scripts]
 councilroom = "councilroom.cli:main"
 
+[tool.hatch.build]
+# The built frontend is gitignored, and hatchling drops what git ignores — without
+# this the wheel installs a server with no UI. Build the bundle before the wheel.
+artifacts = ["backend/councilroom/static/**"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["backend/councilroom"]
 
