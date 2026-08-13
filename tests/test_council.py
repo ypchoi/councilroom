@@ -398,6 +398,16 @@ async def test_a_first_visit_may_arrive_in_parallel(client):
     assert len({u.id for u in users}) == 1, "one identity must not become several users"
 
 
+def test_a_long_question_names_its_room_in_whole_words():
+    from councilroom.api import _title_from
+
+    long = "Why does the sky look blue at noon and red at dusk, and what changes?"
+    assert _title_from(long) == "Why does the sky look blue at noon and red at dusk, and…"
+    assert _title_from("Short one") == "Short one"  # nothing left out, nothing to mark
+    assert _title_from("a\nb  c") == "a b c"  # a title is one line
+    assert _title_from("x" * 80).endswith("…")  # one word wider than the whole title
+
+
 async def _attachment_path(attachment_id: str) -> str:
     async with db.session() as s:
         return (await s.get(db.Attachment, attachment_id)).stored_path

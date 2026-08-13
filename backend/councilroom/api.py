@@ -7,6 +7,7 @@ import json
 import mimetypes
 import secrets
 import shutil
+import textwrap
 import time
 from pathlib import Path
 from urllib.parse import quote
@@ -418,6 +419,15 @@ class AskBody(BaseModel):
     members: list[str] | None = None
 
 
+def _title_from(question: str, width: int = 60) -> str:
+    """A room's name, taken from its first question: whole words, one line, and an
+    ellipsis standing in for whatever was left out."""
+    title = textwrap.shorten(question.strip(), width=width, placeholder="…")
+    # shorten hands back nothing but the placeholder when the first word alone
+    # overruns the width — a pasted URL, or a script that does not space its words.
+    return title if len(title) > 1 else question.strip()[: width - 1] + "…"
+
+
 async def _chairman(s, seat: str, members: list[str], room_id: str, user_id: str) -> str:
     """Turn a rotation into the provider that will chair this run.
 
@@ -486,7 +496,7 @@ async def ask(room_id: str, body: AskBody, user: db.User = CurrentUser):
             att.message_id = message.id
             attachments.append(att)
         if room.title == "New room" and body.content.strip():
-            room.title = body.content.strip()[:60]
+            room.title = _title_from(body.content)
         room.updated_at = db.utcnow()
         chairman = await _chairman(s, seat, members, room_id, user.id)
         run = db.CouncilRun(
