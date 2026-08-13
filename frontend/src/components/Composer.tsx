@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "./Icon";
 
 type Pending = { key: string; file: File; preview?: string };
@@ -23,6 +23,16 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
   const cameraInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+
+  // Grow with the draft up to the CSS max-height, then scroll. Reset to auto first
+  // so the scrollHeight reflects the content, not the previous taller layout.
+  useLayoutEffect(() => {
+    const el = textarea.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
 
   // Files stay local until send: the room is only created when the message goes out.
   function addFiles(files: FileList | null) {
@@ -166,7 +176,8 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
           onChange={(e) => addFiles(e.target.files)}
         />
         <textarea
-          className="max-h-40 min-h-11 flex-1 resize-none overscroll-contain rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
+          ref={textarea}
+          className="max-h-40 min-h-11 flex-1 resize-none overflow-y-auto overscroll-contain rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
           rows={1}
           placeholder={sending ? "Asking…" : "Ask Council…"}
           value={text}
