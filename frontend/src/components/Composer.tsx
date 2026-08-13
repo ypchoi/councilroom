@@ -176,19 +176,22 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
             }
           }}
         />
-        <select
-          className="h-11 shrink-0 rounded-full border border-edge bg-ink px-2 text-[13px] text-slate-300 sm:h-10 sm:text-xs"
-          value={mode}
+        <label
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-edge px-3 text-[13px] text-slate-300 sm:h-10 sm:text-xs"
           title={
             mode === "quick"
               ? "Quick: each member answers once, the Chairman synthesises."
               : "Deep: members also review each other anonymously first — about double the usage."
           }
-          onChange={(e) => onMode(e.target.value as "quick" | "deep")}
         >
-          <option value="quick">Quick</option>
-          <option value="deep">Deep</option>
-        </select>
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-accent"
+            checked={mode === "quick"}
+            onChange={(e) => onMode(e.target.checked ? "quick" : "deep")}
+          />
+          Quick
+        </label>
         <button
           className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:h-10 sm:px-4"
           onClick={send}
