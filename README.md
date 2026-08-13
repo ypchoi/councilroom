@@ -292,11 +292,15 @@ cd frontend && npm run build                # bundles into backend/councilroom/s
 ### Release
 
 The wheel packages whatever `backend/councilroom/static/` holds at build time, so the bundle has to
-be built first — otherwise the release installs a server with no UI:
+be built first — otherwise the release installs a server with no UI. A build does not empty
+`dist/` and `upload` takes a glob, so an earlier build left sitting there is published too, and a
+version number once used cannot be reused:
 
 ```bash
-cd frontend && npm run build
+cd frontend && npm run build   # bundle first: the wheel takes static/ as it finds it
+cd .. && rm -rf dist/          # upload is a glob — publish only what was just built
 python -m build
+twine check dist/*             # metadata and README rendering, without uploading
 twine upload dist/*
 ```
 
