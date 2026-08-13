@@ -35,6 +35,38 @@ body {
   color: #e6edf3;
 }
 
+/* A drawn panel is a riddle to a reader who has not met one, and a button nobody
+   presses may as well not be there. So it shakes — briefly, three times, spaced
+   far enough apart to read as an invitation rather than a fault, and only until
+   the room list has been opened once. A flicker was the other idea; a flicker
+   reads as something broken. */
+@keyframes nudge {
+  0%,
+  6%,
+  100% {
+    transform: translateX(0);
+  }
+  1.5% {
+    transform: translateX(-3px);
+  }
+  3% {
+    transform: translateX(3px);
+  }
+  4.5% {
+    transform: translateX(-2px);
+  }
+}
+
+.nudge {
+  animation: nudge 7s ease-in-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nudge {
+    animation: none;
+  }
+}
+
 /* Markdown answers: mobile-first sizes, tuned down on wider screens. */
 .markdown {
   font-size: 17px;
@@ -62,6 +94,19 @@ body {
 .markdown pre,
 .markdown table {
   margin: 0.7em 0;
+}
+
+/* A line the width of a desktop is a line the eye loses its place in. Capped on
+   the prose only — a table or a code block still gets the whole card, and scrolls
+   inside it. ch is the "0" of the running size, so this tracks the font. */
+.markdown p,
+.markdown li,
+.markdown blockquote,
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  max-width: 76ch;
 }
 
 .markdown h1,

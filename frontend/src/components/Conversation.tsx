@@ -60,7 +60,7 @@ export default function Conversation({
   return (
     <main
       ref={list}
-      className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3"
+      className="flex-1 overflow-y-auto overscroll-contain p-3"
       onScroll={(e) => {
         // Read back to the middle of a room and the list stops following: only a
         // reader already at the end wants to be taken to a new one.
@@ -85,6 +85,9 @@ export default function Conversation({
         setPull(0);
       }}
     >
+      {/* A column of its own width: on a wide screen the scrollbar stays at the
+          edge of the window while the conversation keeps one measure to read. */}
+      <div className="mx-auto max-w-3xl space-y-4">
       {pull > 0 && (
         <div
           style={{ height: pull }}
@@ -101,7 +104,12 @@ export default function Conversation({
       {messages.map((message) =>
         message.role === "user" ? (
           // w-fit, or the block fills its 85% whatever the question's length is.
-          <div key={message.id} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-mine px-3.5 py-2.5">
+          // Right where the thumb is on a phone; left of a wide screen, where the
+          // answer beside it starts, so the eye keeps one margin to return to.
+          <div
+            key={message.id}
+            className="ml-auto w-fit max-w-[85%] rounded-2xl bg-mine px-3.5 py-2.5 sm:mr-auto sm:ml-0"
+          >
             <Attachments attachments={message.attachments} urlFor={urlFor} />
             <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
               {message.content}
@@ -141,7 +149,7 @@ export default function Conversation({
           }
         />
       )}
-
+      </div>
     </main>
   );
 }

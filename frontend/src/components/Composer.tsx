@@ -73,6 +73,8 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
 
   return (
     <div className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      {/* Same column as the conversation, so Send sits under the answers. */}
+      <div className="mx-auto max-w-3xl">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
       {pending.length > 0 && (
         <p className="pb-1 text-[12px] text-slate-500">
@@ -199,6 +201,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
         >
           {sending ? "…" : "Send"}
         </button>
+      </div>
       </div>
     </div>
   );

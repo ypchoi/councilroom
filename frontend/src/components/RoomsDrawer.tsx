@@ -14,6 +14,10 @@ type Props = {
   onShare: (id: string) => void;
   onUnshare: (id: string) => void;
   onSettings: () => void;
+  /** Part of the page rather than a door over it — no backdrop, never dismissed. */
+  pinned?: boolean;
+  /** Overlay only: it stays mounted either way, so that it can slide both ways. */
+  open?: boolean;
 };
 
 export default function RoomsDrawer({
@@ -28,6 +32,8 @@ export default function RoomsDrawer({
   onShare,
   onUnshare,
   onSettings,
+  pinned,
+  open = true,
 }: Props) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -45,19 +51,32 @@ export default function RoomsDrawer({
     setEditing(null);
   }
 
-  return (
-    <div className="fixed inset-0 z-10 bg-black/60" onClick={onClose}>
-      <nav
-        className="flex h-full w-80 max-w-[85vw] flex-col bg-panel p-3"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          className="flex items-center justify-center gap-2 rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm"
-          onClick={onCreate}
-        >
-          New room
-          <Icon name="pencil" className="h-4 w-4" />
-        </button>
+  const nav = (
+    <nav
+      className={`flex h-full w-80 max-w-[85vw] flex-col bg-panel p-3 transition-transform duration-200 ease-out motion-reduce:transition-none ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+      onClick={(e) => e.stopPropagation()}
+    >
+        <div className="flex items-center gap-2">
+          <button
+            className="flex flex-1 items-center justify-center gap-2 rounded bg-accent p-2.5 text-[15px] font-medium text-ink sm:text-sm"
+            onClick={onCreate}
+          >
+            New room
+            <Icon name="pencil" className="h-4 w-4" />
+          </button>
+          {/* Not a cross: the list does not go away, it folds back to the edge it
+              came from, and the same picture pointing the other way brings it back. */}
+          <button
+            className="shrink-0 rounded p-2.5 text-slate-400 hover:bg-edge hover:text-slate-100"
+            onClick={onClose}
+            aria-label={pinned ? "Hide the room list" : "Close the room list"}
+            title={pinned ? "Hide the room list" : "Close the room list"}
+          >
+            <Icon name="panel-close" />
+          </button>
+        </div>
 
         <input
           className="mt-2 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
@@ -193,7 +212,24 @@ export default function RoomsDrawer({
           <Icon name="settings" className="h-4 w-4" />
           Settings
         </button>
-      </nav>
+    </nav>
+  );
+
+  // Pinned, it is furniture: nothing dims behind it and there is nothing to close.
+  return pinned ? (
+    nav
+  ) : (
+    // Closed, it is still here — that is what lets it slide out as well as in.
+    // pointer-events go with the dimming, and the whole thing leaves the
+    // accessibility tree, so a closed drawer is not a second room list to read.
+    <div
+      className={`fixed inset-0 z-10 bg-black/60 transition-opacity duration-200 motion-reduce:transition-none ${
+        open ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+      onClick={onClose}
+      aria-hidden={!open}
+    >
+      {nav}
     </div>
   );
 }

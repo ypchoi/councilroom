@@ -37,6 +37,13 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [mode, setMode] = useState<"quick" | "deep">("quick");
   const [drawer, setDrawer] = useState(false);
+  // Open on arrival, every time. Not remembered: folding it is a thing you do for
+  // the next minute's reading, not a preference, and a room list that stays hidden
+  // across visits is a room list you have to go looking for.
+  const [sidebar, setSidebar] = useState(true);
+  // Whether the room list has ever been opened here. Until it has, the button
+  // that opens it shakes now and then; after that it never asks again.
+  const [foundRooms, setFoundRooms] = useState(() => localStorage.getItem("rooms") === "found");
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -301,16 +308,70 @@ export default function App() {
   const pendingRun = Object.values(runs).find((r) => r.run === null || r.run.status !== "completed");
   const activeRoom = rooms.find((r) => r.id === roomId) ?? null;
 
+  // One list, two placements: pinned beside the room on a wide screen, and the
+  // same component over it when the screen is too narrow to spare the width.
+  const roomList = {
+    rooms,
+    activeId: roomId,
+    onSelect: (id: string) => {
+      setRoomId(id);
+      setRuns({});
+      setDrawer(false);
+      navigate(id);
+    },
+    onCreate: newRoom,
+    onRename: renameRoom,
+    onDelete: removeRoom,
+    onDeleteAll: removeAllRooms,
+    onShare: share,
+    onUnshare: unshare,
+    onSettings: () => setShowSettings(true),
+  };
+
+  const toggleSidebar = () => setSidebar((open) => !open);
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full">
+      {/* Folds by width, not by display: display cannot be animated, and the list
+          inside keeps its own width and is simply clipped away — so the room grows
+          into the space as it goes, instead of jumping once it is gone. */}
+      <aside
+        className={`hidden shrink-0 overflow-hidden transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block ${
+          sidebar ? "w-80 border-r border-edge" : "w-0"
+        }`}
+      >
+        <RoomsDrawer {...roomList} pinned onClose={toggleSidebar} />
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
+        {/* Two buttons, one picture: bringing the list out is the same act to the
+            reader, whether it arrives over the room or beside it, and which button
+            shows is left to the CSS breakpoint rather than a listener. Only this
+            one nudges — the other appears solely after the reader folded the
+            sidebar themselves, so they already know what it does. */}
         <button
-          className="p-1.5 text-slate-300 hover:text-white"
-          onClick={() => setDrawer(true)}
-          aria-label="Rooms"
+          className={`p-1.5 text-slate-300 hover:text-white lg:hidden ${foundRooms ? "" : "nudge"}`}
+          onClick={() => {
+            setDrawer(true);
+            setFoundRooms(true);
+            localStorage.setItem("rooms", "found");
+          }}
+          aria-label="Show the room list"
+          title="Show the room list"
         >
-          <Icon name="menu" />
+          <Icon name="panel-open" />
         </button>
+        {!sidebar && (
+          <button
+            className="hidden p-1.5 text-slate-300 hover:text-white lg:block"
+            onClick={toggleSidebar}
+            aria-label="Show the room list"
+            title="Show the room list"
+          >
+            <Icon name="panel-open" />
+          </button>
+        )}
         <h1 className="flex-1 text-[17px] font-medium sm:text-base">CouncilRoom</h1>
         {activeRoom && !activeRoom.share_token && (
           <button
@@ -346,27 +407,9 @@ export default function App() {
         onMode={setMode}
         onSend={send}
       />
+      </div>
 
-      {drawer && (
-        <RoomsDrawer
-          rooms={rooms}
-          activeId={roomId}
-          onClose={() => setDrawer(false)}
-          onSelect={(id) => {
-            setRoomId(id);
-            setRuns({});
-            setDrawer(false);
-            navigate(id);
-          }}
-          onCreate={newRoom}
-          onRename={renameRoom}
-          onDelete={removeRoom}
-          onDeleteAll={removeAllRooms}
-          onShare={share}
-          onUnshare={unshare}
-          onSettings={() => setShowSettings(true)}
-        />
-      )}
+      <RoomsDrawer {...roomList} open={drawer} onClose={() => setDrawer(false)} />
 
       {showSettings && (
         <SettingsPanel
