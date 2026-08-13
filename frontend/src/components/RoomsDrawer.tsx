@@ -61,7 +61,12 @@ export default function RoomsDrawer({
         {/* Product name up top: the sidebar owns the identity, the main header
             names the room. */}
         <div className="flex items-center justify-between gap-2 px-1 pb-1">
-          <h1 className="text-lg font-semibold tracking-widest">COUNCIL ROOM</h1>
+          {/* The name is also the way home — same empty room "Ask new" opens. */}
+          <h1 className="text-2xl font-semibold tracking-widest">
+            <button onClick={onCreate} title="New question">
+              COUNCIL ROOM
+            </button>
+          </h1>
           {/* Not a cross: the list does not go away, it folds back to the edge it
               came from, and the same picture pointing the other way brings it back. */}
           <button
@@ -74,18 +79,18 @@ export default function RoomsDrawer({
           </button>
         </div>
 
-        {/* Ask new sits at the head of the list, sized like an item so it reads as
-            "add one more" rather than a competing primary action. */}
+        {/* Ask new sits at the head of the list, in the accent: it is the one
+            thing to do here that is not picking a room already made. */}
         <button
-          className="mt-1 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[15px] text-slate-200 hover:bg-edge/60 sm:text-sm"
+          className="mt-4 flex w-full items-center gap-2 rounded-2xl bg-accent px-6 py-3.5 text-left text-[17px] font-bold uppercase tracking-wide text-ink hover:brightness-110 sm:text-base"
           onClick={onCreate}
         >
-          <Icon name="pencil" className="h-4 w-4 text-slate-400" />
           Ask new
+          <Icon name="pencil" className="ml-auto h-4 w-4" />
         </button>
 
         <input
-          className="mt-2 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
+          className="mt-5 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
           placeholder="Search rooms…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -216,9 +221,24 @@ export default function RoomsDrawer({
           )}
         </ul>
 
+        {/* Foot of the list, not of the drawer: it wipes the rooms above it, so
+            it sits with them. Kept subtle — the confirm dialog is where the
+            guarding happens, not the button's weight. */}
+        {rooms.length > 0 && (
+          <button
+            className="mt-1 flex shrink-0 items-center gap-1.5 self-end px-2 py-1 text-[13px] text-red-400 hover:text-red-300 sm:text-xs"
+            onClick={() => {
+              if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
+            }}
+          >
+            <Icon name="trash" className="h-4 w-4" />
+            Delete all
+          </button>
+        )}
+
         {/* Account and council standing moved behind here: the drawer is for
             picking a room, and both were pushing the list into a sliver. */}
-        <div className="mt-2 flex shrink-0 items-center justify-between gap-3 border-t border-edge pt-3">
+        <div className="mt-2 flex shrink-0 items-center gap-3 border-t border-edge pt-3">
           <button
             className="flex items-center gap-2 text-[15px] text-slate-300 hover:text-white sm:text-sm"
             onClick={onSettings}
@@ -226,20 +246,6 @@ export default function RoomsDrawer({
             <Icon name="settings" className="h-4 w-4" />
             Settings
           </button>
-          {/* Bottom, not top: a destructive action does not sit above the list it
-              would wipe. Kept subtle — the confirm dialog is where the guarding
-              happens, not the button's weight. */}
-          {rooms.length > 0 && (
-            <button
-              className="flex items-center gap-1.5 text-[13px] text-red-400 hover:text-red-300 sm:text-xs"
-              onClick={() => {
-                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
-              }}
-            >
-              <Icon name="trash" className="h-4 w-4" />
-              Delete all
-            </button>
-          )}
         </div>
     </nav>
   );
