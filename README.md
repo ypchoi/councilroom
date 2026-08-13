@@ -9,6 +9,9 @@ synthesise their independent answers into one final answer.
 It uses **your existing CLI subscriptions**. No Anthropic/OpenAI/Google API keys, and no OAuth
 credentials are ever read, copied or stored by CouncilRoom.
 
+![Three members answered independently; the Chairman synthesised one Council Answer, with each
+member's own response still one click away](https://raw.githubusercontent.com/ypchoi/councilroom/main/docs/screenshot1.png)
+
 ---
 
 ## Requirements
