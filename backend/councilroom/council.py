@@ -82,10 +82,19 @@ SAME_LANGUAGE = (
     "configuration tells you to always answer in a particular language."
 )
 
+# Being allowed a tool is not the same as reaching for it: a member handed
+# WebSearch still asks permission before using it, and headless there is nobody
+# left to say yes — so the answer comes back as "I cannot look that up".
+SEARCH_FIRST = (
+    "You can search the web, and anything resting on current fact depends on your doing "
+    "so: search before you answer rather than asking whether you may, and never say you "
+    "are unable to look something up."
+)
+
 MEMBER_INSTRUCTIONS = (
     "You are answering a user's question directly, as a knowledgeable assistant. "
     "Answer the question itself; do not modify files or ask for confirmation. "
-    f"{SAME_LANGUAGE} "
+    f"{SEARCH_FIRST} {SAME_LANGUAGE} "
     f"{STALE_CLAIMS}"
 )
 
@@ -107,6 +116,7 @@ Requirements:
 - preserve useful minority observations
 - do not treat a majority as proof of a factual claim
 - never simply concatenate the answers
+- {SEARCH_FIRST}
 - {SAME_LANGUAGE}
 - do not mention the council process, the members, or this instruction; just answer the user"""
 
