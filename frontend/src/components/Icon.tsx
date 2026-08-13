@@ -27,7 +27,10 @@ export type IconName =
 
 // Multiple subpaths separated by "|"; a zero-length segment ("h.01") is a dot.
 const paths: Record<IconName, string> = {
-  settings: "M3 6h4|M11 6h10|M3 12h10|M17 12h4|M3 18h2|M9 18h12|M9 4v4|M15 10v4|M7 16v4",
+  // A cog and its hub: eight square teeth, tips at radius 9.2 and roots at 6.5,
+  // stepped round the circle at 45° each.
+  settings:
+    "M9.7 5.9 9.9 3.0 14.1 3.0 14.3 5.9 14.6 6.1 16.9 4.2 19.8 7.1 17.9 9.4 18.1 9.7 21.0 9.9 21.0 14.1 18.1 14.3 17.9 14.6 19.8 16.9 16.9 19.8 14.6 17.9 14.3 18.1 14.1 21.0 9.9 21.0 9.7 18.1 9.4 17.9 7.1 19.8 4.2 16.9 6.1 14.6 5.9 14.3 3.0 14.1 3.0 9.9 5.9 9.7 6.1 9.4 4.2 7.1 7.1 4.2 9.4 6.1Z|M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
   link: "M9.5 17H8a5 5 0 0 1 0-10h1.5|M14.5 7H16a5 5 0 0 1 0 10h-1.5|M8.5 12h7",
   pencil: "M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z|M14 5.5l4.5 4.5",
   trash: "M4 7h16|M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2|M9 11v6|M15 11v6|M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12",
