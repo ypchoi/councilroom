@@ -61,9 +61,17 @@ export default function RoomsDrawer({
         {/* Product name up top: the sidebar owns the identity, the main header
             names the room. */}
         <div className="flex items-center justify-between gap-2 px-1 pb-1">
-          {/* The name is also the way home — same empty room "Ask new" opens. */}
-          <h1 className="text-2xl font-semibold tracking-widest">
-            <button onClick={onCreate} title="New question">
+          {/* The name is also the way home — the same empty room "Ask new" opens.
+              Mark and name are one thing to press, the mark being the one the tab
+              and the installed app carry, so the whole of it lights up, on one
+              line. */}
+          <h1 className="text-2xl font-semibold tracking-wide">
+            <button
+              className="-mx-1.5 flex items-center gap-2 whitespace-nowrap rounded-lg px-1.5 py-1 transition-colors hover:bg-edge"
+              onClick={onCreate}
+              title="New question"
+            >
+              <img src="/icon.svg" alt="" className="h-7 w-7 shrink-0" />
               COUNCIL ROOM
             </button>
           </h1>
@@ -80,13 +88,17 @@ export default function RoomsDrawer({
         </div>
 
         {/* Ask new sits at the head of the list, in the accent: it is the one
-            thing to do here that is not picking a room already made. */}
+            thing to do here that is not picking a room already made. A pill with
+            its mark and its word held together in the middle — a label pinned
+            left with an icon pushed to the far edge is the shape of a row, which
+            is exactly what this must not be mistaken for. It lifts under the
+            pointer and sits back down when pressed. */}
         <button
-          className="mt-4 flex w-full items-center gap-2 rounded-2xl bg-accent px-6 py-3.5 text-left text-[17px] font-bold uppercase tracking-wide text-ink hover:brightness-110 sm:text-base"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold uppercase tracking-wider text-ink shadow-md shadow-black/40 transition hover:-translate-y-px hover:brightness-110 hover:shadow-lg hover:shadow-black/50 active:translate-y-0 active:shadow-sm"
           onClick={onCreate}
         >
+          <Icon name="pencil" className="h-4 w-4" strokeWidth={2.25} />
           Ask new
-          <Icon name="pencil" className="ml-auto h-4 w-4" />
         </button>
 
         <input
@@ -96,12 +108,7 @@ export default function RoomsDrawer({
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <div className="px-1 pt-2 text-[12px] text-slate-500">
-          {visible.length} room{visible.length === 1 ? "" : "s"}
-          {query.trim() && ` of ${rooms.length}`}
-        </div>
-
-        <ul className="mt-1 flex-1 divide-y divide-edge overflow-y-auto">
+        <ul className="mt-3 flex-1 divide-y divide-edge overflow-y-auto">
           {visible.map((room) => (
             <li key={room.id} className="py-1">
               {editing === room.id ? (
@@ -221,20 +228,26 @@ export default function RoomsDrawer({
           )}
         </ul>
 
-        {/* Foot of the list, not of the drawer: it wipes the rooms above it, so
-            it sits with them. Kept subtle — the confirm dialog is where the
-            guarding happens, not the button's weight. */}
-        {rooms.length > 0 && (
-          <button
-            className="mt-1 flex shrink-0 items-center gap-1.5 self-end px-2 py-1 text-[13px] text-red-400 hover:text-red-300 sm:text-xs"
-            onClick={() => {
-              if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
-            }}
-          >
-            <Icon name="trash" className="h-4 w-4" />
-            Delete all
-          </button>
-        )}
+        {/* Foot of the list, not of the drawer: what the list holds, and the way
+            to be rid of all of it. Delete all stays subtle — the confirm dialog
+            is where the guarding happens, not the button's weight. */}
+        <div className="mt-1 flex shrink-0 items-center justify-between gap-3 px-2 py-1 text-[13px] sm:text-xs">
+          <span className="text-slate-500">
+            {visible.length} room{visible.length === 1 ? "" : "s"}
+            {query.trim() && ` of ${rooms.length}`}
+          </span>
+          {rooms.length > 0 && (
+            <button
+              className="flex items-center gap-1.5 text-red-400 hover:text-red-300"
+              onClick={() => {
+                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
+              }}
+            >
+              <Icon name="trash" className="h-4 w-4" />
+              Delete all
+            </button>
+          )}
+        </div>
 
         {/* Account and council standing moved behind here: the drawer is for
             picking a room, and both were pushing the list into a sliver. */}
