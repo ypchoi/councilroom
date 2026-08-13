@@ -79,7 +79,8 @@ export default function Conversation({
 
       {messages.map((message) =>
         message.role === "user" ? (
-          <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
+          // w-fit, or the block fills its 85% whatever the question's length is.
+          <div key={message.id} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-mine px-3.5 py-2.5">
             <Attachments attachments={message.attachments} urlFor={urlFor} />
             <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
               {message.content}

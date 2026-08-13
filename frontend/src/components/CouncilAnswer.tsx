@@ -84,7 +84,9 @@ export default function CouncilAnswer({
     start ? ` (${Math.max(0, Math.floor((now - start) / 1000))}s)` : "";
 
   return (
-    <div className="rounded-2xl border border-edge bg-panel p-3">
+    // Short of the full width and to the left: the two speakers lean to their
+    // own sides, the way a conversation reads.
+    <div className="mr-auto max-w-[90%] rounded-2xl border border-edge bg-panel p-3">
       <div className="flex items-baseline justify-between pb-2 text-xs text-slate-500">
         <span className="tracking-widest">COUNCIL</span>
         {at && <span className="text-[11px]">{localTime(at)}</span>}

@@ -5,6 +5,10 @@
   --color-panel: #131722;
   --color-edge: #232a39;
   --color-accent: #6ea8fe;
+  /* Your own messages. The accent's hue at a quarter of its lightness: the
+     council's card and the page are both grey-blue, so only a hue tells the
+     two speakers apart — a fourth shade of the same grey would not. */
+  --color-mine: #17325c;
 }
 
 /* The document must not scroll or bounce — only the message list may. A drag
