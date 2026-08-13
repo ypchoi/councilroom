@@ -6,11 +6,14 @@ type Pending = { key: string; file: File; preview?: string };
 type Props = {
   busy: boolean;
   maxFiles: number;
+  /** Chosen per question, not per room — so it belongs beside Send. */
+  mode: "quick" | "deep";
+  onMode: (mode: "quick" | "deep") => void;
   /** Uploads the files and sends the message; rejects to keep the draft intact. */
   onSend: (content: string, files: File[]) => Promise<void>;
 };
 
-export default function Composer({ busy, maxFiles, onSend }: Props) {
+export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props) {
   const [text, setText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
   const [sending, setSending] = useState(false);
@@ -173,6 +176,19 @@ export default function Composer({ busy, maxFiles, onSend }: Props) {
             }
           }}
         />
+        <select
+          className="h-11 shrink-0 rounded-full border border-edge bg-ink px-2 text-[13px] text-slate-300 sm:h-10 sm:text-xs"
+          value={mode}
+          title={
+            mode === "quick"
+              ? "Quick: each member answers once, the Chairman synthesises."
+              : "Deep: members also review each other anonymously first — about double the usage."
+          }
+          onChange={(e) => onMode(e.target.value as "quick" | "deep")}
+        >
+          <option value="quick">Quick</option>
+          <option value="deep">Deep</option>
+        </select>
         <button
           className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:h-10 sm:px-4"
           onClick={send}

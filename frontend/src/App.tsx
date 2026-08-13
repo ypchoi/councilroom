@@ -309,19 +309,6 @@ export default function App() {
           <Icon name="menu" />
         </button>
         <h1 className="flex-1 text-[17px] font-medium sm:text-base">CouncilRoom</h1>
-        <select
-          className="rounded bg-ink px-2 py-1.5 text-[15px] sm:text-sm"
-          value={mode}
-          title={
-            mode === "quick"
-              ? "Quick: each member answers once, the Chairman synthesises."
-              : "Deep: members also review each other anonymously first — about double the usage."
-          }
-          onChange={(e) => setMode(e.target.value as "quick" | "deep")}
-        >
-          <option value="quick">Quick — one round</option>
-          <option value="deep">Deep — peer review</option>
-        </select>
         {activeRoom && !activeRoom.share_token && (
           <button
             className="p-1.5 text-slate-300 hover:text-white"
@@ -359,6 +346,8 @@ export default function App() {
       <Composer
         busy={busy}
         maxFiles={settings?.attachments.max_files_per_message ?? 10}
+        mode={mode}
+        onMode={setMode}
         onSend={send}
       />
 
