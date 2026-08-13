@@ -349,6 +349,24 @@ async def test_a_provider_api_error_is_not_shown_as_json(monkeypatch):
     assert "{" not in response.error, "the JSON envelope must not reach the user"
 
 
+async def test_a_restart_does_not_leave_a_room_thinking_forever(client):
+    """A killed run cannot resume, so the row must not keep claiming it is running."""
+    async with db.session() as s:
+        stuck = db.CouncilRun(
+            id=db.new_id(), room_id=db.new_id(), user_id=db.new_id(),
+            message_id=db.new_id(), chairman_provider="claude", status="running",
+        )
+        s.add(stuck)
+        await s.commit()
+
+    assert await db.fail_interrupted_runs() >= 1
+
+    async with db.session() as s:
+        reopened = await s.get(db.CouncilRun, stuck.id)
+        assert reopened.status == "failed"
+        assert "restart" in (reopened.error or "")
+
+
 async def test_the_council_hands_claude_the_web(monkeypatch):
     """Headless has no one to ask, so the tools must be allowed in the argv itself."""
     from councilroom.agents import base, claude

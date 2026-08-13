@@ -20,6 +20,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.init_db()
+    await db.fail_interrupted_runs()
     yield
 
 

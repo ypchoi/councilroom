@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import ForeignKey, Integer, String, Text, Boolean, DateTime, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -139,6 +139,28 @@ def session() -> AsyncSession:
     engine()
     assert _sessionmaker is not None
     return _sessionmaker()
+
+
+async def fail_interrupted_runs() -> int:
+    """Close the runs a restart took with it.
+
+    A run lives in an asyncio task, so stopping the process ends it mid-flight and
+    leaves the row saying "running" — which the room shows as a council still
+    thinking, forever. Nothing can be running in a process that has only just
+    started, so every such row belongs to a run that will never come back.
+    """
+    async with session() as s:
+        closed = await s.execute(
+            update(CouncilRun)
+            .where(CouncilRun.status.in_(("pending", "running")))
+            .values(
+                status="failed",
+                error="interrupted by a server restart — ask again or retry",
+                completed_at=utcnow(),
+            )
+        )
+        await s.commit()
+        return closed.rowcount
 
 
 async def init_db() -> None:
