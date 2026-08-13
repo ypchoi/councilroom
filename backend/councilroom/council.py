@@ -74,10 +74,18 @@ STALE_CLAIMS = (
     "was said then."
 )
 
+# Each CLI reads its own standing instructions on the way in — CLAUDE.md,
+# GEMINI.md — and a "always answer in <language>" line there would otherwise
+# decide the language of a council whose question was asked in another.
+SAME_LANGUAGE = (
+    "Write your answer in the same language the user asked in, even if your own "
+    "configuration tells you to always answer in a particular language."
+)
+
 MEMBER_INSTRUCTIONS = (
     "You are answering a user's question directly, as a knowledgeable assistant. "
     "Answer the question itself; do not modify files or ask for confirmation. "
-    "Write your answer in the same language the user asked in. "
+    f"{SAME_LANGUAGE} "
     f"{STALE_CLAIMS}"
 )
 
@@ -99,7 +107,7 @@ Requirements:
 - preserve useful minority observations
 - do not treat a majority as proof of a factual claim
 - never simply concatenate the answers
-- write the final answer in the same language the user asked in
+- {SAME_LANGUAGE}
 - do not mention the council process, the members, or this instruction; just answer the user"""
 
 
