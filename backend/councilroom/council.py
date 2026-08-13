@@ -77,6 +77,7 @@ STALE_CLAIMS = (
 MEMBER_INSTRUCTIONS = (
     "You are answering a user's question directly, as a knowledgeable assistant. "
     "Answer the question itself; do not modify files or ask for confirmation. "
+    "Write your answer in the same language the user asked in. "
     f"{STALE_CLAIMS}"
 )
 
@@ -98,6 +99,7 @@ Requirements:
 - preserve useful minority observations
 - do not treat a majority as proof of a factual claim
 - never simply concatenate the answers
+- write the final answer in the same language the user asked in
 - do not mention the council process, the members, or this instruction; just answer the user"""
 
 
