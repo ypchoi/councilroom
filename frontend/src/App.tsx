@@ -1,24 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   api,
-  attachmentUrl,
   shareUrl,
   watchRun,
   type Message,
   type Provider,
   type Room,
-  type RunView,
   type Settings,
 } from "./api";
-import Attachments from "./components/Attachments";
 import Composer from "./components/Composer";
-import CouncilAnswer, { type LiveStatus } from "./components/CouncilAnswer";
+import Conversation, { type RunState } from "./components/Conversation";
 import Icon from "./components/Icon";
 import RoomsDrawer from "./components/RoomsDrawer";
 import SettingsPanel from "./components/SettingsPanel";
 import ShareBar from "./components/ShareBar";
-
-type RunState = { run: RunView | null; live: LiveStatus; stage: string; stageAt: number };
 
 /** Rooms are addressable at /r/<id>; "/" is a fresh, not-yet-created room. */
 const roomFromPath = (): string | null => location.pathname.match(/^\/r\/([0-9a-f]{32})$/)?.[1] ?? null;
@@ -44,7 +39,6 @@ export default function App() {
   const [drawer, setDrawer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
 
   const busy = Object.values(runs).some((r) => r.run === null || r.run.status === "running" || r.run.status === "pending");
 
@@ -87,10 +81,6 @@ export default function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, runs]);
 
   // Load the runs behind council messages so their per-member buttons can appear.
   useEffect(() => {
@@ -355,41 +345,14 @@ export default function App() {
         <ShareBar token={activeRoom.share_token} onUnshare={() => unshare(activeRoom.id)} />
       )}
 
-      <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
-        {messages.length === 0 && (
-          <p className="pt-10 text-center text-[15px] text-slate-500 sm:text-sm">Ask one question. The council answers.</p>
-        )}
-        {messages.map((message) =>
-          message.role === "user" ? (
-            <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
-              <Attachments attachments={message.attachments} urlFor={attachmentUrl} />
-              <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">{message.content}</p>
-            </div>
-          ) : (
-            <CouncilAnswer
-              key={message.id}
-              run={runFor(message)?.run ?? null}
-              live={runFor(message)?.live ?? {}}
-              stage={runFor(message)?.stage ?? ""}
-              stageAt={runFor(message)?.stageAt ?? 0}
-              storedAnswer={message.content}
-              providers={providers}
-              onRetry={(chairman) => message.council_run_id && retry(message.council_run_id, chairman)}
-            />
-          )
-        )}
-        {pendingRun && (
-          <CouncilAnswer
-            run={pendingRun.run}
-            live={pendingRun.live}
-            stage={pendingRun.stage}
-            stageAt={pendingRun.stageAt}
-            providers={providers}
-            onRetry={(chairman) => pendingRun.run && retry(pendingRun.run.id, chairman)}
-          />
-        )}
-        <div ref={bottom} />
-      </main>
+      <Conversation
+        messages={messages}
+        runFor={runFor}
+        pending={pendingRun}
+        providers={providers}
+        onRetry={retry}
+        empty="Ask one question. The council answers."
+      />
 
       {error && <p className="bg-red-950/50 px-3 py-1 text-sm text-red-300">{error}</p>}
 

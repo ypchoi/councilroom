@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, sharedAttachmentUrl, type SharedRoomView } from "./api";
-import Attachments from "./components/Attachments";
-import Markdown from "./components/Markdown";
-import MemberResponses from "./components/MemberResponses";
+import { api, sharedAttachmentUrl, type Message, type SharedRoomView } from "./api";
+import Conversation from "./components/Conversation";
 
 /** Read-only view of a shared room: no auth, no composer, no retry. */
 export default function SharedRoom({ token }: { token: string }) {
@@ -25,6 +23,12 @@ export default function SharedRoom({ token }: { token: string }) {
 
   if (!view) return <div className="grid h-full place-items-center text-slate-500">…</div>;
 
+  // Every run here is finished, so there is no live state to go with it.
+  const runFor = (message: Message) => {
+    const run = (message.council_run_id && view.runs[message.council_run_id]) || null;
+    return run ? { run, live: {}, stage: "", stageAt: 0 } : null;
+  };
+
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
@@ -34,31 +38,13 @@ export default function SharedRoom({ token }: { token: string }) {
         </span>
       </header>
 
-      <main className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
-        {view.messages.map((message) =>
-          message.role === "user" ? (
-            <div key={message.id} className="ml-auto max-w-[85%] rounded-2xl bg-edge px-3.5 py-2.5">
-              <Attachments
-                attachments={message.attachments}
-                urlFor={(id) => sharedAttachmentUrl(token, id)}
-              />
-              <p className="whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
-                {message.content}
-              </p>
-            </div>
-          ) : (
-            <div key={message.id} className="rounded-2xl border border-edge bg-panel px-3.5 py-2.5">
-              <Markdown>{message.content}</Markdown>
-              <MemberResponses
-                run={(message.council_run_id && view.runs[message.council_run_id]) || null}
-              />
-            </div>
-          )
-        )}
-        {view.messages.length === 0 && (
-          <p className="pt-10 text-center text-[15px] text-slate-500 sm:text-sm">Nothing here yet.</p>
-        )}
-      </main>
+      <Conversation
+        messages={view.messages}
+        runFor={runFor}
+        providers={[]}
+        urlFor={(id) => sharedAttachmentUrl(token, id)}
+        empty="Nothing here yet."
+      />
 
       <footer className="border-t border-edge px-3 py-2 text-center text-[12px] text-slate-600">
         CouncilRoom

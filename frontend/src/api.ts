@@ -101,6 +101,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** Timestamps are stored as naive UTC, so a stamp without a zone is UTC — say so
+    before the browser reads it as local time and puts every message hours off. */
+export const localTime = (stamp: string) =>
+  new Date(/(Z|[+-]\d\d:?\d\d)$/.test(stamp) ? stamp : `${stamp}Z`).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
 export const sharedAttachmentUrl = (token: string, id: string) => `/api/shared/${token}/attachments/${id}`;
 export const shareUrl = (token: string) => `${location.origin}/s/${token}`;
