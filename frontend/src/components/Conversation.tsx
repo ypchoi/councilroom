@@ -38,21 +38,35 @@ export default function Conversation({
   urlFor = attachmentUrl,
   empty,
 }: Props) {
-  const bottom = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLElement>(null);
   // The shell is fixed and the document never scrolls, so the browser's own
   // pull-to-refresh can never fire — the list that does scroll runs the gesture.
   const pullFrom = useRef<number | null>(null);
   const [pull, setPull] = useState(0);
 
+  /** Whether the reader is at the end, and so should be carried along by it. */
+  const atEnd = useRef(true);
+
+  // Deliberately without a dependency list. The room's height goes on growing
+  // after its messages arrive — each answer's member rows come later, with its
+  // run — so following the messages alone lands partway up. Every render that
+  // grows the list is a render that has to end at the bottom, and a jump does
+  // that where a smooth scroll only chases a bottom that keeps moving.
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pending]);
+    const el = list.current;
+    if (el && atEnd.current) el.scrollTop = el.scrollHeight;
+  });
 
   return (
     <main
       ref={list}
       className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-3"
+      onScroll={(e) => {
+        // Read back to the middle of a room and the list stops following: only a
+        // reader already at the end wants to be taken to a new one.
+        const el = e.currentTarget;
+        atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+      }}
       onTouchStart={(e) => {
         pullFrom.current = (list.current?.scrollTop ?? 1) <= 0 ? e.touches[0].clientY : null;
       }}
@@ -128,7 +142,6 @@ export default function Conversation({
         />
       )}
 
-      <div ref={bottom} />
     </main>
   );
 }
