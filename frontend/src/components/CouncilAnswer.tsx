@@ -179,7 +179,9 @@ export default function CouncilAnswer({
       {(run?.peer_reviews.length ?? 0) > 0 && (
         <div className="mt-3 text-[15px] sm:text-sm">
           <button
-            className="flex items-center gap-1.5 text-slate-400"
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] sm:text-xs ${
+              openReviews ? "border-accent text-accent" : "border-edge text-slate-400"
+            }`}
             onClick={() => setOpenReviews((v) => !v)}
           >
             <Icon name={openReviews ? "chevron-down" : "chevron-right"} className="h-3.5 w-3.5" />
@@ -188,7 +190,12 @@ export default function CouncilAnswer({
           {openReviews &&
             run!.peer_reviews.map((review, i) => (
               <div key={i} className="mt-2 overflow-hidden rounded-xl bg-ink p-2">
-                <p className="text-xs text-slate-400">{labelOf(review.reviewer)}</p>
+                <p className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                  <span className="truncate">{labelOf(review.reviewer)}</span>
+                  {review.content && (
+                    <CopyButton text={review.content} label={`${labelOf(review.reviewer)}'s review`} />
+                  )}
+                </p>
                 <div className="pt-1">{review.content ? <Markdown>{review.content}</Markdown> : <p className="break-all text-[15px] text-red-400 sm:text-sm">{review.error}</p>}</div>
               </div>
             ))}
