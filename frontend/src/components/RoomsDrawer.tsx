@@ -94,7 +94,7 @@ export default function RoomsDrawer({
             is exactly what this must not be mistaken for. It lifts under the
             pointer and sits back down when pressed. */}
         <button
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold uppercase tracking-wider text-ink shadow-md shadow-black/40 transition hover:-translate-y-px hover:brightness-110 hover:shadow-lg hover:shadow-black/50 active:translate-y-0 active:shadow-sm"
+          className="rim mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-[15px] font-semibold uppercase tracking-wider text-ink shadow-md shadow-black/40 transition hover:-translate-y-px hover:brightness-110 hover:shadow-lg hover:shadow-black/50 active:translate-y-0 active:shadow-sm"
           onClick={onCreate}
         >
           <Icon name="pencil" className="h-4 w-4" strokeWidth={2.25} />

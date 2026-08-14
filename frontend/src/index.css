@@ -67,6 +67,64 @@ body {
   }
 }
 
+/* The one thing to do in the sidebar, so it is the one thing that moves: a light
+   travelling round the pill's rim. Not a flicker, for the reason above — a steady
+   turn reads as alive where a blink reads as broken. The pill keeps its accent
+   fill and only the border carries the sweep, so at rest it looks exactly as it
+   did. @property is what makes an angle animatable; where it is missing the ring
+   simply holds still and nothing looks wrong. */
+@property --rim {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* The border is there unfocused too, transparent and showing the fill behind it,
+   so nothing shifts by two pixels when the sweep arrives. */
+.rim,
+.rim-focus {
+  border: 2px solid transparent;
+}
+
+/* One ring, drawn the same on both: only what it encloses differs. */
+.rim,
+.rim-focus:focus-within {
+  background:
+    linear-gradient(var(--rim-fill), var(--rim-fill)) padding-box,
+    conic-gradient(
+        from var(--rim),
+        var(--color-accent) 0deg 200deg,
+        #eaf2ff 300deg,
+        var(--color-accent) 360deg
+      )
+      border-box;
+  animation: rim 3s linear infinite;
+}
+
+/* Always turning, because it is always the invitation. */
+.rim {
+  --rim-fill: var(--color-accent);
+}
+
+/* Only while the cursor is in it: a still box says nothing, and a box that turns
+   while you are not typing in it says the wrong thing. */
+.rim-focus {
+  --rim-fill: var(--color-ink);
+}
+
+@keyframes rim {
+  to {
+    --rim: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rim,
+  .rim-focus:focus-within {
+    animation: none;
+  }
+}
+
 /* Markdown answers: mobile-first sizes, tuned down on wider screens. */
 .markdown {
   font-size: 17px;
