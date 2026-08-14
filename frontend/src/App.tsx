@@ -37,6 +37,8 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [mode, setMode] = useState<"quick" | "deep">("quick");
   const [drawer, setDrawer] = useState(false);
+  /** The composer's textarea, so "Ask new" can drop the cursor into it. */
+  const draft = useRef<HTMLTextAreaElement>(null);
   // Open on arrival, every time. Not remembered: folding it is a thing you do for
   // the next minute's reading, not a preference, and a room list that stays hidden
   // across visits is a room list you have to go looking for.
@@ -222,6 +224,10 @@ export default function App() {
     setMessages([]);
     setDrawer(false);
     navigate(null);
+    // An empty room is only an invitation to type, so land in the draft. Focused
+    // here inside the click rather than from an effect: a phone only raises its
+    // keyboard for a focus the user's own gesture asked for.
+    draft.current?.focus();
   }
 
   async function logout() {
@@ -372,6 +378,10 @@ export default function App() {
 
       <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
+        {/* Folded away, the sidebar takes the room's mark with it and the page is
+            left unsigned. So the mark stands here instead, ahead of the button
+            that brings the list back — and steps aside the moment it does. */}
+        <img src="/icon.svg" alt="" className={`h-6 w-6 shrink-0 ${sidebar ? "lg:hidden" : ""}`} />
         {/* Two buttons, one picture: bringing the list out is the same act to the
             reader, whether it arrives over the room or beside it, and which button
             shows is left to the CSS breakpoint rather than a listener. Only this
@@ -438,6 +448,7 @@ export default function App() {
         mode={mode}
         onMode={setMode}
         onSend={send}
+        inputRef={draft}
       />
       </div>
 
