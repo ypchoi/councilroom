@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import Icon, { type IconName } from "./Icon";
 
 type Pending = { key: string; file: File; preview?: string };
@@ -6,14 +6,16 @@ type Pending = { key: string; file: File; preview?: string };
 type Props = {
   busy: boolean;
   maxFiles: number;
-  /** Chosen per question, not per room — so it belongs beside Ask. */
+  /** Chosen per question, not per room — so it belongs in the composer's menu. */
   mode: "quick" | "deep";
   onMode: (mode: "quick" | "deep") => void;
   /** Uploads the files and sends the message; rejects to keep the draft intact. */
   onSend: (content: string, files: File[]) => Promise<void>;
+  /** Handed out so "Ask new" can put the cursor here. */
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
 };
 
-export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props) {
+export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRef }: Props) {
   const [text, setText] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
   const [sending, setSending] = useState(false);
@@ -83,7 +85,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
 
   return (
     <div className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      {/* Same column as the conversation, so Ask sits under the answers. */}
+      {/* Same column as the conversation, so the composer sits under the answers. */}
       <div className="mx-auto max-w-3xl">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
       {pending.length > 0 && (
@@ -120,7 +122,31 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <ul className="absolute bottom-13 left-0 z-20 w-40 overflow-hidden rounded-xl border border-edge bg-panel text-[15px] shadow-lg sm:text-sm">
+              <ul className="absolute bottom-13 left-0 z-20 w-44 overflow-hidden rounded-xl border border-edge bg-panel text-[15px] shadow-lg sm:text-sm">
+                {/* The mode lives here rather than beside Send: it is a per-question
+                    override of a room-wide default, and the draft needs the width
+                    more than a checkbox does. The menu stays open on the toggle so
+                    the check is seen to move — otherwise nothing on screen says
+                    which mode the next question will run in. */}
+                <li className="border-b border-edge">
+                  <button
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-edge"
+                    onClick={() => onMode(mode === "quick" ? "deep" : "quick")}
+                    role="menuitemcheckbox"
+                    aria-checked={mode === "quick"}
+                    title={
+                      mode === "quick"
+                        ? "Quick: each member answers once, the Chairman synthesises."
+                        : "Deep: members also review each other anonymously first — about double the usage."
+                    }
+                  >
+                    <Icon
+                      name="check"
+                      className={`h-[18px] w-[18px] ${mode === "quick" ? "text-accent" : "invisible"}`}
+                    />
+                    Quick
+                  </button>
+                </li>
                 {(
                   [
                     { label: "Camera", icon: "camera", ref: cameraInput },
@@ -130,8 +156,9 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
                 ).map(({ label, icon, ref }) => (
                   <li key={label}>
                     <button
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-edge"
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-edge disabled:opacity-40"
                       onClick={() => ref.current?.click()}
+                      disabled={pending.length >= maxFiles}
                     >
                       <Icon name={icon} className="h-[18px] w-[18px] text-slate-400" />
                       {label}
@@ -142,10 +169,9 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
             </>
           )}
           <button
-            className="grid h-11 w-11 place-items-center rounded-full border border-edge text-slate-300 disabled:opacity-40 sm:h-10 sm:w-10"
+            className="grid h-11 w-11 place-items-center rounded-full border border-edge text-slate-300 disabled:opacity-40"
             onClick={() => setMenuOpen((open) => !open)}
-            disabled={pending.length >= maxFiles}
-            aria-label="Add attachment"
+            aria-label="More options"
             aria-expanded={menuOpen}
           >
             <Icon name="plus" />
@@ -175,11 +201,20 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
           className="hidden"
           onChange={(e) => addFiles(e.target.files)}
         />
+        {/* The turning rim belongs to the wrapper, not the field: a border on the
+            textarea itself sits outside the height the autosize measures, and the
+            box would end up two lines short of its own text. */}
+        <div className="rim-focus min-w-0 flex-1 rounded-2xl bg-ink">
         <textarea
-          ref={textarea}
-          className="max-h-40 min-h-11 flex-1 resize-none overflow-y-auto overscroll-contain rounded-2xl bg-ink px-3.5 py-2.5 text-[16px] outline-none focus:ring-1 focus:ring-accent"
+          ref={(el) => {
+            textarea.current = el;
+            if (inputRef) inputRef.current = el;
+          }}
+          // block: an inline textarea leaves a line's worth of descender under
+          // itself inside the wrapper, and the row's buttons sit that much lower.
+          className="block max-h-40 min-h-10 w-full resize-none overflow-y-auto overscroll-contain bg-transparent px-3.5 py-2 text-[16px] outline-none"
           rows={1}
-          placeholder={sending ? "Asking…" : "Ask Council…"}
+          placeholder={sending ? "Asking…" : "Type something…"}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -189,28 +224,15 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend }: Props
             }
           }}
         />
-        <label
-          className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-edge px-3 text-[13px] text-slate-300 sm:h-10 sm:text-xs"
-          title={
-            mode === "quick"
-              ? "Quick: each member answers once, the Chairman synthesises."
-              : "Deep: members also review each other anonymously first — about double the usage."
-          }
-        >
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-accent"
-            checked={mode === "quick"}
-            onChange={(e) => onMode(e.target.checked ? "quick" : "deep")}
-          />
-          Quick
-        </label>
+        </div>
         <button
-          className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:h-10 sm:px-4"
+          // Same 44px as the draft box beside it — the row has one height, and a
+          // button that shrinks on wide screens only leaves a gap at the top.
+          className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:px-4"
           onClick={send}
           disabled={busy || sending || (!text.trim() && pending.length === 0)}
         >
-          {sending ? "…" : "Ask"}
+          {sending ? "…" : "Send"}
         </button>
       </div>
       </div>
