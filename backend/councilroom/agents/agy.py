@@ -45,10 +45,9 @@ class AgyAgent(Agent):
         self, prompt: str, attachments: list[Attachment], session_id: str | None = None
     ) -> AgentResponse:
         # agy has no image input of its own: shown a picture it reaches for Bash and
-        # writes a python/PIL script to inspect the pixels, which headless mode
-        # auto-denies — and the run then produces nothing at all. So it is never told
-        # where the attachments are; it answers the question and says it could not see
-        # them. Text attachments are inlined into the prompt instead.
+        # writes a python/PIL script to guess at the pixels. So it is never told where
+        # the attachments are; it answers the question and says it could not see them.
+        # Text attachments are inlined into the prompt instead.
         binary = [a for a in attachments if a.mime_type != "text/plain"]
         # agy takes the prompt as the value of --print, so use --print=<prompt>.
         argv = [
@@ -57,6 +56,10 @@ class AgyAgent(Agent):
             "--output-format", "json",
             "--print-timeout", f"{int(self.timeout)}s",
             "--disable-slash-commands",
+            # Headless has no one to answer a permission prompt, so every tool agy
+            # reaches for is auto-denied and the run comes back empty. It has no
+            # --allowed-tools to grant a narrower set, so this is the only way in.
+            "--dangerously-skip-permissions",
         ]
         if session_id:
             argv += ["--conversation", session_id]

@@ -408,6 +408,45 @@ def test_a_long_question_names_its_room_in_whole_words():
     assert _title_from("x" * 80).endswith("…")  # one word wider than the whole title
 
 
+async def test_agy_is_allowed_its_tools_up_front(monkeypatch):
+    """agy has no --allowed-tools: unasked, a denied prompt leaves the run empty."""
+    from councilroom.agents import agy, base
+
+    seen: list[str] = []
+
+    async def fake_run_cli(argv, **kwargs):
+        seen[:] = argv
+        return base.CliResult(exit_code=0, stdout='{"response":"ok"}', stderr="")
+
+    monkeypatch.setattr(agy, "run_cli", fake_run_cli)
+    await agy.AgyAgent(timeout=5).ask("hi", [])
+    assert "--dangerously-skip-permissions" in seen, seen
+
+
+async def test_a_lost_token_refresh_is_asked_again(monkeypatch):
+    """Members run in parallel and share one credentials file, so one of them loses."""
+    from councilroom.agents import base, claude
+
+    race = base.CliResult(
+        exit_code=1, stdout="",
+        stderr="Failed to refresh OAuth token: another Claude Code process is refreshing it",
+    )
+    answered = base.CliResult(exit_code=0, stdout='{"result":"ok"}', stderr="")
+    calls = 0
+
+    async def fake_run_cli(argv, **kwargs):
+        nonlocal calls
+        calls += 1
+        return race if calls == 1 else answered
+
+    monkeypatch.setattr(claude, "run_cli", fake_run_cli)
+    monkeypatch.setattr(claude, "RETRY_AFTER_SECONDS", 0)
+    response = await claude.ClaudeAgent(timeout=5).ask("hi", [])
+
+    assert calls == 2, "the fresh token the winner left behind was never used"
+    assert response.success and response.content == "ok"
+
+
 async def _attachment_path(attachment_id: str) -> str:
     async with db.session() as s:
         return (await s.get(db.Attachment, attachment_id)).stored_path

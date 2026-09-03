@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from pathlib import Path
 
-from .base import Agent, AgentResponse, Attachment, run_cli
+from .base import Agent, AgentResponse, Attachment, CliResult, run_cli
+
+RETRY_AFTER_SECONDS = 5
+
+
+def _lost_the_token_race(result: CliResult) -> bool:
+    """A council runs several `claude -p` at once and they share one credentials file,
+    so an expired token has all of them refreshing it and all but one losing. The
+    winner leaves a fresh token behind, so waiting a moment and asking again is enough.
+    """
+    return result.exit_code != 0 and "Failed to refresh OAuth token" in result.stderr + result.stdout
 
 
 class ClaudeAgent(Agent):
@@ -74,7 +85,11 @@ class ClaudeAgent(Agent):
         started = time.monotonic()
         # The prompt goes over stdin: several claude flags are variadic and would
         # otherwise swallow a trailing positional prompt.
-        result = await run_cli(argv, timeout=self.timeout, stdin=self.compose_prompt(prompt, attachments))
+        stdin = self.compose_prompt(prompt, attachments)
+        result = await run_cli(argv, timeout=self.timeout, stdin=stdin)
+        if _lost_the_token_race(result):
+            await asyncio.sleep(RETRY_AFTER_SECONDS)
+            result = await run_cli(argv, timeout=self.timeout, stdin=stdin)
         content = result.stdout
         new_session = session_id
         failure = None
