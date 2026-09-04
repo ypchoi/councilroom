@@ -3,6 +3,7 @@ import { attachmentUrl, localTime, type Message, type Provider, type RunView } f
 import { t } from "../i18n";
 import Attachments from "./Attachments";
 import CouncilAnswer, { type LiveStatus } from "./CouncilAnswer";
+import Icon from "./Icon";
 
 export type RunState = {
   run: RunView | null;
@@ -27,6 +28,8 @@ type Props = {
   pending?: RunState | null;
   /** Questions typed while the room was busy, waiting their turn to be asked. */
   queued?: { key: string; content: string }[];
+  /** Takes a question back off the queue, before it is ever asked. */
+  onCancelQueued?: (key: string) => void;
   providers: Provider[];
   /** Absent behind a share link, where nothing may be retried. */
   onRetry?: (runId: string, chairman?: string) => void;
@@ -40,6 +43,7 @@ export default function Conversation({
   runFor,
   pending,
   queued,
+  onCancelQueued,
   providers,
   onRetry,
   urlFor = attachmentUrl,
@@ -148,8 +152,17 @@ export default function Conversation({
       {queued?.map((q) => (
         <div
           key={q.key}
-          className="ml-auto w-fit max-w-[85%] overflow-hidden rounded-2xl bg-mine px-3.5 py-2.5 opacity-60 sm:mr-auto sm:ml-0"
+          className="relative ml-auto w-fit max-w-[85%] overflow-hidden rounded-2xl bg-mine py-2.5 pr-9 pl-3.5 opacity-60 sm:mr-auto sm:ml-0"
         >
+          {onCancelQueued && (
+            <button
+              className="absolute top-1.5 right-1.5 px-1 text-slate-500 hover:text-red-400"
+              onClick={() => onCancelQueued(q.key)}
+              aria-label={t("cancelQueued")}
+            >
+              <Icon name="x" className="h-4 w-4" />
+            </button>
+          )}
           <p className="break-words whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
             {q.content}
           </p>

@@ -36,6 +36,7 @@ const S = {
   send: { ko: "보내기", en: "Send" },
   queueSend: { ko: "대기열에", en: "Queue" },
   queued: { ko: "대기 중", en: "queued" },
+  cancelQueued: { ko: "대기 취소", en: "Cancel queued question" },
   queueHint: {
     ko: "심의가 끝나면 순서대로 나갑니다",
     en: "Goes out in turn, once the council is free",

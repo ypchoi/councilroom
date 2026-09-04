@@ -508,6 +508,7 @@ export default function App() {
         runFor={runFor}
         pending={pendingRun}
         queued={queue.filter((q) => q.roomId === roomId)}
+        onCancelQueued={(key) => setQueue((current) => current.filter((q) => q.key !== key))}
         providers={providers}
         onRetry={retry}
         empty={t("emptyRoom")}
