@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentRunView, RunView } from "../api";
+import { t } from "../i18n";
 import CopyButton from "./CopyButton";
 import Icon from "./Icon";
 import Markdown from "./Markdown";
@@ -46,11 +47,11 @@ export default function MemberResponses({ run }: { run: RunView | null }) {
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 {seconds(r.duration_ms)}
-                {r.content && <CopyButton text={r.content} label={`${r.label}'s answer`} />}
+                {r.content && <CopyButton text={r.content} label={t("answerOf")(r.label)} />}
               </span>
             </p>
             {!r.attachment_supported && (
-              <p className="pt-1 text-xs text-amber-400">did not receive the attachments</p>
+              <p className="pt-1 text-xs text-amber-400">{t("noAttachments")}</p>
             )}
             <div className="pt-1">
               {r.content ? (

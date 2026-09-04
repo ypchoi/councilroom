@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, sharedAttachmentUrl, type Message, type SharedRoomView } from "./api";
+import { roomTitle, t } from "./i18n";
 import Conversation from "./components/Conversation";
 
 /** Read-only view of a shared room: no auth, no composer, no retry. */
@@ -16,7 +17,7 @@ export default function SharedRoom({ token }: { token: string }) {
       <div className="grid h-full place-items-center p-4 text-center text-slate-400">
         <div className="max-w-sm">
           <h1 className="pb-2 text-lg text-slate-200">CouncilRoom</h1>
-          <p className="text-sm">This link is no longer shared.</p>
+          <p className="text-sm">{t("linkGone")}</p>
         </div>
       </div>
     );
@@ -32,9 +33,9 @@ export default function SharedRoom({ token }: { token: string }) {
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-2 border-b border-edge bg-panel px-3 py-2.5">
-        <h1 className="flex-1 truncate text-[17px] font-medium sm:text-base">{view.room.title}</h1>
+        <h1 className="flex-1 truncate text-[17px] font-medium sm:text-base">{roomTitle(view.room.title)}</h1>
         <span className="shrink-0 rounded border border-edge px-2 py-1 text-[12px] text-slate-500">
-          shared · read-only
+          {t("sharedReadOnly")}
         </span>
       </header>
 
@@ -43,7 +44,7 @@ export default function SharedRoom({ token }: { token: string }) {
         runFor={runFor}
         providers={[]}
         urlFor={(id) => sharedAttachmentUrl(token, id)}
-        empty="Nothing here yet."
+        empty={t("nothingYet")}
       />
 
       <footer className="border-t border-edge px-3 py-2 text-center text-[12px] text-slate-600">

@@ -95,7 +95,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
       {busy && <p className="pb-1 text-[12px] text-slate-500">{t("queueHint")}</p>}
       {pending.length > 0 && (
         <p className="pb-1 text-[12px] text-slate-500">
-          {pending.length} / {maxFiles} attached
+          {t("attachedCount")(pending.length, maxFiles)}
         </p>
       )}
       {pending.length > 0 && (
@@ -114,7 +114,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
               <button
                 className="px-1 text-slate-500 hover:text-red-400"
                 onClick={() => remove(key)}
-                aria-label={`Remove ${file.name}`}
+                aria-label={t("removeFile")(file.name)}
               >
                 <Icon name="x" className="h-4 w-4" />
               </button>
@@ -139,24 +139,20 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
                     onClick={() => onMode(mode === "quick" ? "deep" : "quick")}
                     role="menuitemcheckbox"
                     aria-checked={mode === "quick"}
-                    title={
-                      mode === "quick"
-                        ? "Quick: each member answers once, the Chairman synthesises."
-                        : "Deep: members also review each other anonymously first — about double the usage."
-                    }
+                    title={mode === "quick" ? t("quickTip") : t("deepTip")}
                   >
                     <Icon
                       name="check"
                       className={`h-[18px] w-[18px] ${mode === "quick" ? "text-accent" : "invisible"}`}
                     />
-                    Quick
+                    {t("quick")}
                   </button>
                 </li>
                 {(
                   [
-                    { label: "Camera", icon: "camera", ref: cameraInput },
-                    { label: "Photos", icon: "image", ref: photoInput },
-                    { label: "Files", icon: "paperclip", ref: fileInput },
+                    { label: t("camera"), icon: "camera", ref: cameraInput },
+                    { label: t("photos"), icon: "image", ref: photoInput },
+                    { label: t("files"), icon: "paperclip", ref: fileInput },
                   ] as { label: string; icon: IconName; ref: typeof cameraInput }[]
                 ).map(({ label, icon, ref }) => (
                   <li key={label}>
@@ -176,7 +172,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
           <button
             className="grid h-11 w-11 place-items-center rounded-full border border-edge text-slate-300 disabled:opacity-40"
             onClick={() => setMenuOpen((open) => !open)}
-            aria-label="More options"
+            aria-label={t("moreOptions")}
             aria-expanded={menuOpen}
           >
             <Icon name="plus" />
@@ -219,7 +215,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
           // itself inside the wrapper, and the row's buttons sit that much lower.
           className="block max-h-40 min-h-10 w-full resize-none overflow-y-auto overscroll-contain bg-transparent px-3.5 py-2 text-[16px] outline-none"
           rows={1}
-          placeholder={sending ? "Asking…" : "Type something…"}
+          placeholder={sending ? t("asking") : t("typeSomething")}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {

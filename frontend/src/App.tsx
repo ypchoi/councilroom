@@ -8,7 +8,7 @@ import {
   type Room,
   type Settings,
 } from "./api";
-import { t } from "./i18n";
+import { roomTitle, t } from "./i18n";
 import Composer from "./components/Composer";
 import Conversation, { type RunState } from "./components/Conversation";
 import Icon from "./components/Icon";
@@ -190,7 +190,7 @@ export default function App() {
     (runId: string, room: string) => {
       setRuns((current) => ({
         ...current,
-        [runId]: { run: null, live: {}, stage: "Council deliberating…", stageAt: Date.now(), roomId: room },
+        [runId]: { run: null, live: {}, stage: t("deliberating"), stageAt: Date.now(), roomId: room },
       }));
       const stop = watchRun(runId, (event) => {
         setRuns((current) => {
@@ -203,8 +203,8 @@ export default function App() {
             live[event.provider] = { state: "done", duration_ms: event.duration_ms };
           if (event.event === "agent.failed" && event.provider)
             live[event.provider] = { state: "failed", error: event.error };
-          if (event.event === "peer_review.started") stage = "Peer review…";
-          if (event.event === "synthesis.started") stage = `Synthesizing… Chairman: ${event.chairman}`;
+          if (event.event === "peer_review.started") stage = t("peerReviewing");
+          if (event.event === "synthesis.started") stage = t("synthesizing")(event.chairman ?? "");
           if (event.event === "council.completed" || event.event === "council.failed") stage = "";
           // Each stage times itself, so a long synthesis is visibly moving too.
           const stageAt = stage === state.stage ? state.stageAt : Date.now();
@@ -364,10 +364,7 @@ export default function App() {
       <div className="grid h-full place-items-center p-4 text-center">
         <div className="max-w-sm">
           <h1 className="pb-2 text-lg">CouncilRoom</h1>
-          <p className="text-sm text-slate-400">
-            Not authenticated. This deployment expects an identity header from a trusted reverse
-            proxy, but the request arrived without one.
-          </p>
+          <p className="text-sm text-slate-400">{t("notAuthed")}</p>
         </div>
       </div>
     );
@@ -392,12 +389,12 @@ export default function App() {
           <input
             type="password"
             className="w-full rounded bg-ink p-2"
-            placeholder="Password"
+            placeholder={t("password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <p className="pt-2 text-sm text-red-400">{error}</p>}
-          <button className="mt-3 w-full rounded bg-accent p-2 font-medium text-ink">Sign in</button>
+          <button className="mt-3 w-full rounded bg-accent p-2 font-medium text-ink">{t("signIn")}</button>
         </div>
       </form>
     );
@@ -469,8 +466,8 @@ export default function App() {
             setFoundRooms(true);
             localStorage.setItem("rooms", "found");
           }}
-          aria-label="Show the room list"
-          title="Show the room list"
+          aria-label={t("showRooms")}
+          title={t("showRooms")}
         >
           <Icon name="panel-open" />
         </button>
@@ -478,8 +475,8 @@ export default function App() {
           <button
             className="hidden p-1.5 text-slate-300 hover:text-white lg:block"
             onClick={toggleSidebar}
-            aria-label="Show the room list"
-            title="Show the room list"
+            aria-label={t("showRooms")}
+            title={t("showRooms")}
           >
             <Icon name="panel-open" />
           </button>
@@ -488,14 +485,14 @@ export default function App() {
             top of the sidebar. An empty draft has no title yet, so name that state
             directly rather than fall back to the product name. */}
         <h1 className="flex-1 truncate text-[17px] font-medium sm:text-base">
-          {activeRoom?.title ?? "New room"}
+          {activeRoom ? roomTitle(activeRoom.title) : t("newRoom")}
         </h1>
         {activeRoom && !activeRoom.share_token && (
           <button
             className="p-1.5 text-slate-300 hover:text-white"
             onClick={() => share(activeRoom.id)}
-            title="Create a public read-only link to this room"
-            aria-label="Share room"
+            title={t("shareRoomTip")}
+            aria-label={t("shareRoom")}
           >
             <Icon name="link" />
           </button>
@@ -513,7 +510,7 @@ export default function App() {
         queued={queue.filter((q) => q.roomId === roomId)}
         providers={providers}
         onRetry={retry}
-        empty="Ask one question. The council answers."
+        empty={t("emptyRoom")}
       />
 
       {error && <p className="bg-red-950/50 px-3 py-1 text-sm text-red-300">{error}</p>}

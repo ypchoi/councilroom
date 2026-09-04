@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { localTime, shareUrl, type Room } from "../api";
+import { roomTitle, t } from "../i18n";
 import Icon from "./Icon";
 
 type Props = {
@@ -42,7 +43,7 @@ export default function RoomsDrawer({
   const [menu, setMenu] = useState<string | null>(null);
 
   const visible = query.trim()
-    ? rooms.filter((r) => r.title.toLowerCase().includes(query.trim().toLowerCase()))
+    ? rooms.filter((r) => roomTitle(r.title).toLowerCase().includes(query.trim().toLowerCase()))
     : rooms;
 
   function commit(id: string) {
@@ -69,7 +70,7 @@ export default function RoomsDrawer({
             <button
               className="-mx-1.5 flex items-center gap-2 whitespace-nowrap rounded-lg px-1.5 py-1 transition-colors hover:bg-edge"
               onClick={onCreate}
-              title="New question"
+              title={t("newQuestion")}
             >
               <img src="/icon.svg" alt="" className="h-7 w-7 shrink-0" />
               COUNCIL ROOM
@@ -80,8 +81,8 @@ export default function RoomsDrawer({
           <button
             className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-edge hover:text-slate-100"
             onClick={onClose}
-            aria-label={pinned ? "Hide the room list" : "Close the room list"}
-            title={pinned ? "Hide the room list" : "Close the room list"}
+            aria-label={pinned ? t("hideRooms") : t("closeRooms")}
+            title={pinned ? t("hideRooms") : t("closeRooms")}
           >
             <Icon name="panel-close" />
           </button>
@@ -98,12 +99,12 @@ export default function RoomsDrawer({
           onClick={onCreate}
         >
           <Icon name="pencil" className="h-4 w-4" strokeWidth={2.25} />
-          Ask new
+          {t("askNew")}
         </button>
 
         <input
           className="mt-5 w-full rounded bg-ink px-3 py-2 text-[15px] outline-none focus:ring-1 focus:ring-accent sm:text-sm"
-          placeholder="Search rooms…"
+          placeholder={t("searchRooms")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -137,7 +138,7 @@ export default function RoomsDrawer({
                   >
                     <div className="min-w-0 flex-1 px-2 py-1.5">
                       <button className="block w-full truncate text-left text-[15px] sm:text-sm">
-                        {room.title}
+                        {roomTitle(room.title)}
                       </button>
                       <div className="flex items-baseline gap-2 text-[11px] text-slate-500">
                         <span className="shrink-0">{localTime(room.updated_at)}</span>
@@ -173,7 +174,7 @@ export default function RoomsDrawer({
                         e.stopPropagation();
                         setMenu(menu === room.id ? null : room.id);
                       }}
-                      aria-label={`Actions for ${room.title}`}
+                      aria-label={t("actionsFor")(roomTitle(room.title))}
                       aria-expanded={menu === room.id}
                     >
                       <Icon name="more" strokeWidth={2.5} />
@@ -193,7 +194,7 @@ export default function RoomsDrawer({
                         }}
                       >
                         <Icon name="pencil" className="h-4 w-4" />
-                        Rename
+                        {t("rename")}
                       </button>
                       <button
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-edge"
@@ -202,10 +203,10 @@ export default function RoomsDrawer({
                           else onShare(room.id);
                           setMenu(null);
                         }}
-                        title={room.share_token ? undefined : "Create a public read-only link"}
+                        title={room.share_token ? undefined : t("shareTip")}
                       >
                         <Icon name="link" className="h-4 w-4" />
-                        {room.share_token ? "Stop sharing" : "Share"}
+                        {room.share_token ? t("stopSharing") : t("share")}
                       </button>
                       <button
                         className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-red-400 hover:bg-edge"
@@ -215,7 +216,7 @@ export default function RoomsDrawer({
                         }}
                       >
                         <Icon name="trash" className="h-4 w-4" />
-                        Delete
+                        {t("delete")}
                       </button>
                     </div>
                   )}
@@ -224,7 +225,7 @@ export default function RoomsDrawer({
             </li>
           ))}
           {visible.length === 0 && (
-            <li className="px-2 py-4 text-center text-[13px] text-slate-600">no matching rooms</li>
+            <li className="px-2 py-4 text-center text-[13px] text-slate-600">{t("noMatchingRooms")}</li>
           )}
         </ul>
 
@@ -233,18 +234,18 @@ export default function RoomsDrawer({
             is where the guarding happens, not the button's weight. */}
         <div className="mt-1 flex shrink-0 items-center justify-between gap-3 px-2 py-1 text-[13px] sm:text-xs">
           <span className="text-slate-500">
-            {visible.length} room{visible.length === 1 ? "" : "s"}
-            {query.trim() && ` of ${rooms.length}`}
+            {t("roomCount")(visible.length)}
+            {query.trim() && t("ofTotal")(rooms.length)}
           </span>
           {rooms.length > 0 && (
             <button
               className="flex items-center gap-1.5 text-red-400 hover:text-red-300"
               onClick={() => {
-                if (confirm(`Delete all ${rooms.length} rooms and their history?`)) onDeleteAll();
+                if (confirm(t("deleteAllConfirm")(rooms.length))) onDeleteAll();
               }}
             >
               <Icon name="trash" className="h-4 w-4" />
-              Delete all
+              {t("deleteAll")}
             </button>
           )}
         </div>
@@ -257,7 +258,7 @@ export default function RoomsDrawer({
             onClick={onSettings}
           >
             <Icon name="settings" className="h-4 w-4" />
-            Settings
+            {t("settings")}
           </button>
         </div>
     </nav>

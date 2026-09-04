@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { localTime, type AgentRunView, type Provider, type RunView } from "../api";
+import { t } from "../i18n";
 import CopyButton from "./CopyButton";
 import Icon from "./Icon";
 import Markdown from "./Markdown";
@@ -98,9 +99,9 @@ export default function CouncilAnswer({
     // answer or an error blob still cannot push the card past its own width.
     <div className="overflow-hidden rounded-2xl border border-edge bg-panel p-3">
       <div className="flex items-baseline justify-between pb-2 text-xs text-slate-500">
-        <span className="truncate tracking-widest">COUNCIL MEMBERS</span>
+        <span className="truncate tracking-widest">{t("councilMembers")}</span>
         <span className="flex shrink-0 items-center gap-2 pl-2">
-          {answer && <CopyButton text={answer} label="the Council answer" />}
+          {answer && <CopyButton text={answer} label={t("theCouncilAnswer")} />}
           {at && <span className="text-[11px]">{localTime(at)}</span>}
         </span>
       </div>
@@ -131,7 +132,7 @@ export default function CouncilAnswer({
             )}
             <span className="text-[13px] text-slate-500 sm:text-xs">
               {status.state === "running"
-                ? `Thinking…${ticking(status.started_at)}`
+                ? `${t("thinking")}${ticking(status.started_at)}`
                 : status.error ?? seconds(status.duration_ms)}
             </span>
           </li>
@@ -151,7 +152,7 @@ export default function CouncilAnswer({
           {onRetry && (
             <div className="mt-2 flex flex-wrap gap-2">
               <button className="rounded border border-edge px-2 py-1 text-xs" onClick={() => onRetry()}>
-                Retry
+                {t("retry")}
               </button>
               {providers.map((p) => (
                 <button
@@ -159,7 +160,7 @@ export default function CouncilAnswer({
                   className="rounded border border-edge px-2 py-1 text-xs"
                   onClick={() => onRetry(p.name)}
                 >
-                  Retry with {p.label} as chairman
+                  {t("retryWith")(p.label)}
                 </button>
               ))}
             </div>
@@ -169,7 +170,7 @@ export default function CouncilAnswer({
 
       {answer && (
         <div className="mt-3 border-t border-edge pt-3">
-          <p className="pb-1 text-xs tracking-widest text-slate-500">COUNCIL ANSWER</p>
+          <p className="pb-1 text-xs tracking-widest text-slate-500">{t("councilAnswer")}</p>
           <Markdown>{answer}</Markdown>
         </div>
       )}
@@ -185,7 +186,7 @@ export default function CouncilAnswer({
             onClick={() => setOpenReviews((v) => !v)}
           >
             <Icon name={openReviews ? "chevron-down" : "chevron-right"} className="h-3.5 w-3.5" />
-            Peer reviews
+            {t("peerReviews")}
           </button>
           {openReviews &&
             run!.peer_reviews.map((review, i) => (
@@ -193,7 +194,7 @@ export default function CouncilAnswer({
                 <p className="flex items-center justify-between gap-2 text-xs text-slate-400">
                   <span className="truncate">{labelOf(review.reviewer)}</span>
                   {review.content && (
-                    <CopyButton text={review.content} label={`${labelOf(review.reviewer)}'s review`} />
+                    <CopyButton text={review.content} label={t("reviewOf")(labelOf(review.reviewer))} />
                   )}
                 </p>
                 <div className="pt-1">{review.content ? <Markdown>{review.content}</Markdown> : <p className="break-all text-[15px] text-red-400 sm:text-sm">{review.error}</p>}</div>

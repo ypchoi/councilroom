@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type UsageReport, type ProviderUsage } from "../api";
+import { t } from "../i18n";
 import Icon from "./Icon";
 
 // The drawer unmounts this panel every time it closes, but probing costs a CLI
@@ -10,9 +11,11 @@ let cached: UsageReport | null = null;
 function resetIn(iso: string | null): string {
   if (!iso) return "";
   const minutes = Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 60000));
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return t("unitMinutes")(minutes);
   const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours}h${minutes % 60 ? ` ${minutes % 60}m` : ""}` : `${Math.floor(hours / 24)}d`;
+  return hours < 24
+    ? `${t("unitHours")(hours)}${minutes % 60 ? ` ${t("unitMinutes")(minutes % 60)}` : ""}`
+    : t("unitDays")(Math.floor(hours / 24));
 }
 
 /**
@@ -22,9 +25,10 @@ function resetIn(iso: string | null): string {
  * disagree, the reset wins and the chip says what the window really is.
  */
 function windowChip(slot: "5h" | "7d", iso: string | null): string {
-  if (!iso) return slot;
+  const label = slot === "5h" ? t("unitHours")(5) : t("unitDays")(7);
+  if (!iso) return label;
   const hours = (new Date(iso).getTime() - Date.now()) / 3_600_000;
-  return hours > (slot === "5h" ? 5 : 24 * 7) ? resetIn(iso) : slot;
+  return hours > (slot === "5h" ? 5 : 24 * 7) ? resetIn(iso) : label;
 }
 
 function Quota({ chip, percent, reset }: { chip: string; percent: number; reset: string }) {
@@ -42,7 +46,7 @@ function Quota({ chip, percent, reset }: { chip: string; percent: number; reset:
           </span>
         </div>
       </div>
-      {reset && <p className="pl-[38px] text-slate-500">reset in {reset}</p>}
+      {reset && <p className="pl-[38px] text-slate-500">{t("resetIn")(reset)}</p>}
     </div>
   );
 }
@@ -58,16 +62,16 @@ function Member({ provider }: { provider: ProviderUsage }) {
         />
         <span className="text-[15px] sm:text-sm">{provider.label}</span>
         {provider.is_chairman && (
-          <span className="rounded bg-edge px-1 text-[10px] tracking-wide text-slate-300">CHAIR</span>
+          <span className="rounded bg-edge px-1 text-[10px] tracking-wide text-slate-300">{t("chairBadge")}</span>
         )}
-        {!provider.is_member && <span className="text-[10px] text-slate-500">off</span>}
+        {!provider.is_member && <span className="text-[10px] text-slate-500">{t("memberOff")}</span>}
       </div>
 
       {provider.account && <p className="truncate pt-1 text-[13px] text-slate-400 sm:text-[11px]">{provider.account}</p>}
       <p className="pt-0.5 text-[13px] text-slate-500 sm:text-[11px]">
-        {provider.model ?? "model unknown"}
-        {provider.model_is_default && provider.model ? " (CLI default)" : ""}
-        {provider.effort ? ` · effort: ${provider.effort}` : ""}
+        {provider.model ?? t("modelUnknown")}
+        {provider.model_is_default && provider.model ? t("cliDefaultSuffix") : ""}
+        {provider.effort ? t("effortSuffix")(provider.effort) : ""}
       </p>
 
       {quota ? (
@@ -88,12 +92,12 @@ function Member({ provider }: { provider: ProviderUsage }) {
           )}
         </div>
       ) : (
-        <p className="pt-1 text-[12px] text-slate-600 sm:text-[11px]">quota not reported by this CLI</p>
+        <p className="pt-1 text-[12px] text-slate-600 sm:text-[11px]">{t("noQuota")}</p>
       )}
 
       <p className="pt-1 text-[12px] text-slate-500 sm:text-[11px]">
-        {provider.calls} calls here
-        {provider.failures > 0 && ` · ${provider.failures} failed`}
+        {t("callsHere")(provider.calls)}
+        {provider.failures > 0 && t("failedCount")(provider.failures)}
       </p>
     </li>
   );
@@ -126,7 +130,7 @@ export default function CouncilStatus() {
   if (!report) {
     return (
       <section className="border-t border-edge pt-3">
-        <h2 className="pb-2 text-xs tracking-widest text-slate-500">COUNCIL</h2>
+        <h2 className="pb-2 text-xs tracking-widest text-slate-500">{t("council")}</h2>
         {/* Words, not grey boxes: probing spawns every CLI, and a wait this long
             has to say it is a wait. */}
         <p className="flex items-center gap-2 text-[13px] text-slate-500 sm:text-xs">
@@ -137,13 +141,13 @@ export default function CouncilStatus() {
                 className="rounded border border-edge px-1.5 py-0.5 hover:text-slate-200"
                 onClick={() => load(true)}
               >
-                Retry
+                {t("retry")}
               </button>
             </>
           ) : (
             <>
               <span className="inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-slate-600 border-t-accent" />
-              Loading… asking each CLI for its account and quota.
+              {t("statusLoading")}
             </>
           )}
         </p>
@@ -154,15 +158,15 @@ export default function CouncilStatus() {
   return (
     <section className="border-t border-edge pt-3">
       <h2 className="flex items-center gap-2 pb-2 text-xs tracking-widest text-slate-500">
-        COUNCIL
+        {t("council")}
         <button
           className="ml-auto flex items-center gap-1 rounded border border-edge px-1.5 py-0.5 text-[11px] tracking-normal hover:text-slate-200 disabled:opacity-40"
           onClick={() => load(true)}
           disabled={busy}
-          title="Re-read every CLI's account and quota"
+          title={t("refreshTip")}
         >
           <Icon name="refresh" className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
-          Refresh
+          {t("refresh")}
         </button>
       </h2>
       <ul className="space-y-2">
@@ -172,9 +176,7 @@ export default function CouncilStatus() {
       </ul>
       {error && <p className="pt-2 text-[12px] text-red-400">{error}</p>}
       <p className="pt-2 text-[10px] text-slate-600">
-        {report.quota_source
-          ? `quota via ${report.quota_source}`
-          : "no quota source installed — CLIs do not report remaining quota"}
+        {report.quota_source ? t("quotaVia")(report.quota_source) : t("noQuotaSource")}
       </p>
     </section>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { shareUrl } from "../api";
+import { t } from "../i18n";
 import Icon from "./Icon";
 
 /**
@@ -34,15 +35,15 @@ export default function ShareBar({ token, onUnshare }: { token: string; onUnshar
         {token}
       </a>
       <button className="rounded border border-edge px-2 py-1 hover:text-white" onClick={copy}>
-        {copied ? "Copied" : "Copy"}
+        {copied ? t("copied") : t("copy")}
       </button>
       <button
         className="rounded border border-edge px-2 py-1 hover:text-red-400"
         onClick={() => {
-          if (confirm("Stop sharing? The link stops working for everyone.")) onUnshare();
+          if (confirm(t("unshareConfirm"))) onUnshare();
         }}
       >
-        Unshare
+        {t("unshare")}
       </button>
     </div>
   );

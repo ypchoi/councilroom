@@ -100,7 +100,7 @@ export default function Conversation({
           style={{ height: pull }}
           className="grid place-items-center overflow-hidden text-[12px] text-slate-500"
         >
-          {pull >= PULL_TO_REFRESH ? "Release to refresh" : "Pull to refresh"}
+          {pull >= PULL_TO_REFRESH ? t("releaseToRefresh") : t("pullToRefresh")}
         </div>
       )}
 

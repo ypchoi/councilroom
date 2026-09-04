@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../i18n";
 import Icon from "./Icon";
 
 /**
@@ -12,8 +13,8 @@ export default function CopyButton({ text, label }: { text: string; label: strin
   return (
     <button
       type="button"
-      title={`Copy ${label} as Markdown`}
-      aria-label={`Copy ${label} as Markdown`}
+      title={t("copyAsMarkdown")(label)}
+      aria-label={t("copyAsMarkdown")(label)}
       className="shrink-0 text-slate-500 hover:text-white"
       onClick={async () => {
         try {
