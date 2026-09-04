@@ -98,6 +98,11 @@ While one room is deliberating you can open another room or start a **New room**
 else — the first run keeps streaming in the background, and its answer is waiting when you come
 back. **Ask** is gated per-room, so a busy Room A does not lock the composer in Room B.
 
+Ask again in a room that is still deliberating and the question waits its turn rather than being
+refused: it sits in the conversation as a dimmed bubble marked *queued*, in the order it will go
+out in, and is sent the moment that room is free. The X in its corner takes it back before it is
+ever asked.
+
 ## Share links
 
 The 🔗 button — in the room list and in the open room's header — publishes a room as a read-only

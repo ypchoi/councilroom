@@ -829,6 +829,12 @@ Runs are tracked by their own id, not by the room currently on screen, so switch
 interrupt or lose a run. When the reader returns to a room whose run finished elsewhere, the
 completed answer is already on the server and is fetched with the room's messages.
 
+A question sent to a room that is still deliberating is queued rather than refused. A queued
+question belongs to its room, carries the mode it was typed under — the menu may have moved on by
+the time its turn comes — and goes out as soon as that room is free, one at a time and in the order
+typed. It appears in the conversation as a dimmed bubble marked *queued*, with an X in its corner
+that drops it before it is ever asked; deleting the room drops its queue with it.
+
 ### Share links
 
 A room may be published as a read-only page at `/s/<token>`.
