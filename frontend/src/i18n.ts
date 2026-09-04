@@ -224,8 +224,12 @@ const S = {
     ko: "화면에 쓰이는 말입니다. 모델이 답하는 말이 아니라 — 그건 질문한 말을 따라갑니다. 고르면 페이지를 다시 엽니다.",
     en: "The language of the interface — not of the answers, which follow the language you ask in. Choosing one reloads the page.",
   },
-  cancel: { ko: "취소", en: "Cancel" },
-  save: { ko: "저장", en: "Save" },
+  close: { ko: "닫기", en: "Close" },
+  resetDefaults: { ko: "기본값으로", en: "Reset to defaults" },
+  resetConfirm: {
+    ko: "멤버, 의장, 심의 모드, 타임아웃을 기본값으로 되돌립니다. 계속할까요?",
+    en: "Put the members, chairman, modes and timeouts back to their defaults?",
+  },
 
   // ── Share ────────────────────────────────────────────────────────────────
   copy: { ko: "복사", en: "Copy" },

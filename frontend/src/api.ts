@@ -134,6 +134,7 @@ export const api = {
   settings: () => request<Settings>("/config"),
   saveSettings: (body: Partial<Settings>) =>
     request<Settings>("/config", { method: "PUT", body: JSON.stringify(body) }),
+  resetSettings: () => request<Settings>("/config/reset", { method: "POST" }),
 
   pushKey: () => request<{ key: string | null }>("/push/key"),
   pushSubscribe: (body: { endpoint: string; p256dh: string; auth: string }) =>

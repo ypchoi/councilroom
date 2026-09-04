@@ -516,6 +516,27 @@ async def test_the_vapid_private_key_never_leaves_the_server(client):
     assert "vapid_private_key" not in config
 
 
+async def test_a_reset_puts_back_the_defaults_but_not_the_keys(client):
+    """The panel has no Save button, so a reset is the only way back — and it
+    must not take the VAPID pair or the auth section with it."""
+    from councilroom import config
+
+    key_before, _ = push.keys()
+    defaults = config.Config()
+
+    changed = await client.put(
+        "/api/config",
+        json={"council": {**defaults.council.model_dump(), "chairman": "codex", "default_mode": "deep"}},
+    )
+    assert changed.json()["council"]["chairman"] == "codex", changed.text
+
+    fresh = (await client.post("/api/config/reset")).json()
+    assert fresh["council"]["chairman"] == defaults.council.chairman
+    assert fresh["council"]["default_mode"] == defaults.council.default_mode
+    assert push.keys()[0] == key_before, "the reset threw away the VAPID key"
+    assert "vapid_private_key" not in json.dumps(fresh)
+
+
 async def _attachment_path(attachment_id: str) -> str:
     async with db.session() as s:
         return (await s.get(db.Attachment, attachment_id)).stored_path

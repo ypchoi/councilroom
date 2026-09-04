@@ -167,6 +167,15 @@ async def put_config(body: dict, user: db.User = CurrentUser):
     return await get_config(user)
 
 
+@router.post("/config/reset")
+async def reset_config(user: db.User = CurrentUser):
+    """Back to the shipped defaults — the council, the timeouts, the modes. Auth
+    and the push keys are not the browser's to set, so they carry over intact."""
+    current = load_config()
+    save_config(Config(auth=current.auth, push=current.push))
+    return await get_config(user)
+
+
 # --------------------------------------------------------------------------
 # push notifications
 # --------------------------------------------------------------------------

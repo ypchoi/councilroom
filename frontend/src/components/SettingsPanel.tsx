@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type Provider, type Settings } from "../api";
 import { LANGS, lang, setLang, t, type Lang } from "../i18n";
 import * as push from "../push";
@@ -46,6 +46,8 @@ export default function SettingsPanel({
   // Null until the service worker has been asked: this is the one setting that
   // belongs to the device in front of the reader rather than to the account.
   const [notify, setNotify] = useState<boolean | null>(null);
+  // The write a keystroke is waiting on, so the next one can replace it.
+  const pending = useRef<number | null>(null);
 
   useEffect(() => {
     api.settings().then(setSettings).catch((e) => setError(e.message));
@@ -60,7 +62,22 @@ export default function SettingsPanel({
     );
   }
 
-  const patch = (next: Partial<Settings>) => setSettings({ ...settings, ...next });
+  /** Every control writes straight through — the panel has nothing to press
+      afterwards. Debounced because the number fields fire on each keystroke. */
+  function patch(next: Partial<Settings>) {
+    const merged = { ...settings!, ...next };
+    setSettings(merged);
+    if (pending.current) clearTimeout(pending.current);
+    // A half-typed number is not a setting. Nought seconds would fail every run
+    // that followed, so the field keeps what was typed and the write waits.
+    if (merged.execution.timeout_seconds < 1 || merged.council.minimum_successful_members < 1) {
+      return;
+    }
+    pending.current = window.setTimeout(
+      () => api.saveSettings(merged).then(onSaved).catch((e) => setError(e.message)),
+      400
+    );
+  }
   // /api/providers always answers with every known provider, so an empty list
   // means the probe has not come back yet — not that there are none.
   const probing = providers.length === 0;
@@ -80,11 +97,12 @@ export default function SettingsPanel({
     }
   }
 
-  async function save() {
+  async function resetDefaults() {
+    if (!confirm(t("resetConfirm"))) return;
     try {
-      const saved = await api.saveSettings(settings!);
-      onSaved(saved);
-      onClose();
+      const fresh = await api.resetSettings();
+      setSettings(fresh);
+      onSaved(fresh);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -284,8 +302,8 @@ export default function SettingsPanel({
         <section className="pb-4">
           <h3 className="pb-1 text-xs tracking-widest text-slate-500">{t("languageTitle")}</h3>
           <Hint text={t("languageHint")} />
-          {/* Takes effect on the spot, unlike everything else here: it is this
-              browser's own setting, not part of the config being saved. */}
+          {/* This one never reaches the server at all: the language belongs to
+              the browser reading the page, not to the council everyone shares. */}
           <select
             className="w-full rounded bg-ink p-2.5 text-[15px] sm:text-sm"
             value={lang}
@@ -301,11 +319,17 @@ export default function SettingsPanel({
 
         {error && <p className="pb-2 text-sm text-red-400">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button className="rounded border border-edge px-3 py-2 text-sm" onClick={onClose}>
-            {t("cancel")}
+          <button
+            className="rounded border border-edge px-3 py-2 text-sm hover:text-red-400"
+            onClick={resetDefaults}
+          >
+            {t("resetDefaults")}
           </button>
-          <button className="rounded bg-accent px-3 py-2 text-sm font-medium text-ink" onClick={save}>
-            {t("save")}
+          <button
+            className="rounded bg-accent px-3 py-2 text-sm font-medium text-ink"
+            onClick={onClose}
+          >
+            {t("close")}
           </button>
         </div>
       </div>

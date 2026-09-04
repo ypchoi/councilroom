@@ -1134,6 +1134,18 @@ Minimum successful members
 
 Where practical, discover available models from provider CLIs.
 
+The panel has no Save button. Every control writes through as it is changed — a setting the reader
+can see is a setting that is already in force — and the only two buttons are **기본값으로**, which
+puts the shipped defaults back, and **닫기**.
+
+* Writes are debounced, since the number fields fire on every keystroke, and a number below 1 is
+  not written at all: an emptied timeout box must not save nought seconds and fail every run after
+  it. The field keeps what was typed; the write waits for a usable value.
+* A reset restores what the browser is allowed to set — members, chairman, modes, timeouts. The
+  auth section and the VAPID pair are not the browser's to set and carry over untouched.
+* The language is the exception in the other direction: it belongs to the browser reading the page
+  and never reaches the server at all. So does whether this device wants notifications.
+
 ---
 
 ## 33. Authentication Philosophy
