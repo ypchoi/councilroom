@@ -87,7 +87,7 @@ class Config(BaseModel):
             "claude": ProviderConfig(model="sonnet", effort="medium"),
             "codex": ProviderConfig(model="gpt-5.6-terra", effort="medium"),
             # agy encodes the effort tier in the model id.
-            "agy": ProviderConfig(model="gemini-3.6-flash-medium"),
+            "agy": ProviderConfig(model="gemini-3.8-flash-medium"),
         }
     )
 
