@@ -31,3 +31,52 @@ self.addEventListener("fetch", (e) => {
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/")))
   );
 });
+
+// A finished council, arriving through the push service. The payload was
+// encrypted for this browser alone, so the title and preview are already here —
+// no fetch, nothing for the relay to have read on the way.
+self.addEventListener("push", (e) => {
+  let data = {};
+  try {
+    data = e.data ? e.data.json() : {};
+  } catch (_) {
+    // A push with no readable body still means "something finished".
+  }
+  e.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Chrome waives the show-something rule while a window of this origin is
+      // visible, and the answer is already on screen in it.
+      if (windows.some((w) => w.visibilityState === "visible")) return;
+      await self.registration.showNotification(data.title || "CouncilRoom", {
+        body: data.body || "",
+        icon: "/icon.svg",
+        badge: "/icon.svg",
+        // One notification per room: a second answer replaces the first rather
+        // than stacking up a column of them.
+        tag: data.url || "councilroom",
+        renotify: true,
+        data: { url: data.url || "/" },
+      });
+    })()
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // Reuse the window that is already open — installed apps only get one.
+      for (const w of windows) {
+        if ("focus" in w) {
+          await w.focus();
+          if ("navigate" in w) await w.navigate(url);
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
+});

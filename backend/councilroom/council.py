@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import select
 
-from . import db
+from . import db, push
 from .agents.base import AgentResponse, Attachment
 from .agents.registry import build_agent, provider_labels
 from .config import Config, load_config
@@ -274,7 +274,9 @@ async def execute(spec: RunInput, cfg: Config | None = None) -> None:
     if len(ok) < minimum:
         error = f"only {len(ok)}/{len(spec.members)} members succeeded (minimum {minimum})"
         await _set_run(spec.run_id, status="failed", error=error, completed_at=db.utcnow())
+        notice = await push.prepare(spec.run_id, None, error)
         bus.publish("council.failed", error=error)
+        await push.deliver(notice)
         return
 
     reviews = await _peer_reviews(spec, ok, bus, cfg) if spec.mode == "deep" else []
@@ -291,7 +293,9 @@ async def execute(spec: RunInput, cfg: Config | None = None) -> None:
     if not answer.success:
         error = f"chairman ({spec.chairman}) failed: {answer.error}"
         await _set_run(spec.run_id, status="failed", error=error, completed_at=db.utcnow())
+        notice = await push.prepare(spec.run_id, None, error)
         bus.publish("council.failed", error=error, stage="synthesis")
+        await push.deliver(notice)
         return
 
     bus.publish("synthesis.completed", duration_ms=answer.duration_ms)
@@ -306,7 +310,10 @@ async def execute(spec: RunInput, cfg: Config | None = None) -> None:
             )
         )
         await s.commit()
+    # The reader may well have put the phone down ten seconds into this.
+    notice = await push.prepare(spec.run_id, answer.content, None)
     bus.publish("council.completed", answer=answer.content, chairman=spec.chairman)
+    await push.deliver(notice)
 
 
 async def _session_for(room_id: str, provider: str) -> str | None:

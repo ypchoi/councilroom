@@ -111,6 +111,20 @@ class PeerReview(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class PushSubscription(Base):
+    """One installed browser that has said yes to notifications. The endpoint is
+    the push service's own URL for that browser, and the two keys encrypt the
+    payload so the push service relaying it cannot read what it carries."""
+
+    __tablename__ = "push_subscriptions"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(32), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, unique=True)
+    p256dh: Mapped[str] = mapped_column(String(255))
+    auth: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class AgentSession(Base):
     """Provider-side conversation handle for one room member."""
 

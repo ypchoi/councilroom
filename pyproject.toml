@@ -18,6 +18,8 @@ dependencies = [
     "pyyaml>=6.0",
     "python-multipart>=0.0.9",
     "itsdangerous>=2.2",
+    # Web Push payloads are encrypted per RFC 8291; this brings that and VAPID.
+    "pywebpush>=2.0",
 ]
 
 [project.optional-dependencies]

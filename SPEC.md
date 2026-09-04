@@ -1238,3 +1238,34 @@ When proxy auth mode is enabled:
 * keep the app bound to `127.0.0.1`, so an unreachable port and a peer check are what make the
   header safe
 
+---
+
+## 38. Notifications
+
+A council run takes tens of seconds, and the reader is expected to put the phone down during one.
+An installed PWA should therefore be able to say when the run it was asked for has ended.
+
+```text
+POST   /api/push/subscribe     endpoint + the browser's two keys, for this user
+POST   /api/push/unsubscribe   endpoint
+GET    /api/push/key           the VAPID public key, or null when disabled
+```
+
+Rules:
+
+* Notifications go through the push service the browser nominated, never straight to the device.
+  Two different keys make that safe: the VAPID pair identifies this deployment to the push service,
+  and the `p256dh`/`auth` pair the browser supplies encrypts the payload so the service relaying it
+  cannot read the question or the answer.
+* The VAPID pair is generated on first use and stored in `config.yaml`. The private half is never
+  returned by the API and never committed — `/api/config` exposes only `push.enabled`, the same
+  treatment `auth` gets.
+* A subscription belongs to one browser, not to an account: the toggle reflects the registration in
+  front of the reader. A 404 or 410 from the push service means that browser is gone, and the row
+  is deleted; any other failure is left alone to be retried by the next run.
+* The database work behind a notification happens before the run publishes its terminal event, and
+  only the network call happens after. A finished run must not still be reading the database while
+  the answer it produced is already on screen.
+* A notification says nothing the interface would not: the room's own title, and either the opening
+  of the answer or the same error text the card shows. Failure to notify never fails a run.
+* Nothing is shown while a window of the app is visible — the answer is already on screen there.

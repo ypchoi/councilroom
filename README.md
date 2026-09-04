@@ -128,6 +128,28 @@ covering three paths — the more specific application wins, so everything else 
 favicon. The service worker is not registered on shared pages, since the app shell it caches is not
 a page a visitor may fetch.
 
+## Notifications
+
+Installed to a phone's home screen, CouncilRoom can say when a council has finished — the point of
+a question you asked and then put the phone down on. **Settings → 알림** switches it on for the
+device in front of you; each device is subscribed separately, and nothing rings while a window of
+the app is visible.
+
+The notification does not travel from this server to the phone. It goes through the push service
+the browser nominated — Google's, for Chrome — so two keys are involved:
+
+| Key | Made by | What it is for |
+|---|---|---|
+| VAPID pair | this server, once | proves the sender, so nobody who learns an endpoint URL can push to it |
+| `p256dh` + `auth` | the phone's browser | encrypts the payload, so the relaying service cannot read it |
+
+The VAPID private key is generated on first use and kept in `~/.councilroom/config.yaml` — never in
+the repository, and never served to a browser: `/api/config` returns only whether notifications are
+enabled. Set `push.enabled: false` there to switch the whole feature off.
+
+Requires HTTPS, which is also what the service worker needs, so notifications work through the
+tunnel and not over plain `http://127.0.0.1`.
+
 ## Council panel
 
 The drawer shows, per member: authentication state, the signed-in account, the model that will

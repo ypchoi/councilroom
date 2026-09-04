@@ -55,6 +55,20 @@ const S = {
     ko: "깊은 심의: 멤버들이 서로의 답을 익명으로 리뷰까지 합니다 — 사용량은 약 두 배.",
     en: "Deep: members also review each other anonymously first — about double the usage.",
   },
+  notificationsTitle: { ko: "알림", en: "Notifications" },
+  notificationsHint: {
+    ko: "심의가 끝나면 이 기기로 알림을 보냅니다. 기기마다 따로 켜야 하고, 앱을 보고 있는 동안에는 울리지 않습니다.",
+    en: "Tells this device when a council finishes. Each device is switched on separately, and nothing rings while you are looking at the app.",
+  },
+  notifyThisDevice: { ko: "이 기기에서 알림 받기", en: "Notify this device" },
+  notificationsBlocked: {
+    ko: "브라우저가 이 사이트의 알림을 차단했습니다 — 사이트 설정에서 허용해 주세요.",
+    en: "The browser has blocked notifications for this site — allow them in its site settings.",
+  },
+  notificationsUnsupported: {
+    ko: "이 브라우저는 알림을 지원하지 않습니다. 홈 화면에 설치하면 받을 수 있습니다.",
+    en: "This browser cannot receive them. Install the app to your home screen and it can.",
+  },
   camera: { ko: "카메라", en: "Camera" },
   photos: { ko: "사진", en: "Photos" },
   files: { ko: "파일", en: "Files" },

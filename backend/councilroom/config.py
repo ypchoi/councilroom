@@ -37,6 +37,18 @@ class AuthConfig(BaseModel):
     session_secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
 
+class PushConfig(BaseModel):
+    """Web Push. The VAPID pair is generated on first use and lives here, in
+    ~/.councilroom/config.yaml — never in the repo: the private key is the whole
+    proof that a notification came from this deployment."""
+
+    enabled: bool = True
+    vapid_private_key: str | None = None
+    vapid_public_key: str | None = None
+    # Web Push wants a way to reach whoever is sending; mailto: is the convention.
+    contact: str = "mailto:councilroom@localhost"
+
+
 class ProviderConfig(BaseModel):
     model: str | None = None
     effort: str | None = None
@@ -82,6 +94,7 @@ class Config(BaseModel):
     council: CouncilConfig = Field(default_factory=CouncilConfig)
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     attachments: AttachmentConfig = Field(default_factory=AttachmentConfig)
+    push: PushConfig = Field(default_factory=PushConfig)
     # Fixed line-up: one tier for every member, so answers are comparable and the
     # quota cost of a council run is predictable. Edit config.yaml to change it.
     providers: dict[str, ProviderConfig] = Field(

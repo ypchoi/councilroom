@@ -224,3 +224,8 @@ dist/
 backend/councilroom/static/
 *.tsbuildinfo
 .claude/
+
+# Runtime state, in case COUNCILROOM_HOME is ever pointed inside the checkout:
+# config.yaml carries the session secret and the VAPID private key.
+config.yaml
+councilroom.db

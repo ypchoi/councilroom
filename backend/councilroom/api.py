@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import case, delete, func, select
 
-from . import council, db, security, usage
+from . import council, db, push, security, usage
 from .agents.base import Attachment as AgentAttachment
 from .agents.registry import AGENT_CLASSES, build_agent
 from .config import CHAIRMAN_ROTATIONS, UPLOADS_DIR, Config, load_config, save_config
@@ -151,6 +151,9 @@ async def usage_panel(refresh: bool = False, user: db.User = CurrentUser):
 async def get_config(user: db.User = CurrentUser):
     cfg = load_config().model_dump()
     cfg["auth"] = {"mode": cfg["auth"]["mode"]}  # never expose secrets
+    # Same rule for the VAPID pair: the public half is meant to be handed out
+    # (see /push/key), the private half proves the sender and stays here.
+    cfg["push"] = {"enabled": cfg["push"]["enabled"]}
     return cfg
 
 
@@ -158,9 +161,41 @@ async def get_config(user: db.User = CurrentUser):
 async def put_config(body: dict, user: db.User = CurrentUser):
     current = load_config()
     body.pop("auth", None)  # auth is configured from the CLI, not the browser
+    body.pop("push", None)  # nor are the push keys; a phone subscribes instead
     merged = Config.model_validate({**current.model_dump(), **body, "auth": current.auth.model_dump()})
     save_config(merged)
     return await get_config(user)
+
+
+# --------------------------------------------------------------------------
+# push notifications
+# --------------------------------------------------------------------------
+class PushBody(BaseModel):
+    endpoint: str
+    p256dh: str = ""
+    auth: str = ""
+
+
+@router.get("/push/key")
+async def push_key(user: db.User = CurrentUser):
+    """The public half of the VAPID pair, which the browser must present to
+    subscribe. Null when this deployment has notifications switched off."""
+    enabled = load_config().push.enabled
+    return {"key": push.public_key() if enabled else None}
+
+
+@router.post("/push/subscribe")
+async def push_subscribe(body: PushBody, user: db.User = CurrentUser):
+    if not body.p256dh or not body.auth:
+        raise HTTPException(status_code=400, detail="subscription is missing its keys")
+    await push.subscribe(user.id, body.endpoint, body.p256dh, body.auth)
+    return {"ok": True}
+
+
+@router.post("/push/unsubscribe")
+async def push_unsubscribe(body: PushBody, user: db.User = CurrentUser):
+    await push.unsubscribe(body.endpoint)
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------

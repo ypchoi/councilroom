@@ -18,7 +18,7 @@ import pathlib  # noqa: E402
 import httpx  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
-from councilroom import db, security  # noqa: E402
+from councilroom import db, push, security  # noqa: E402
 from councilroom.agents import registry  # noqa: E402
 from councilroom.agents.base import Agent, AgentResponse  # noqa: E402
 from councilroom.main import create_app  # noqa: E402
@@ -470,6 +470,50 @@ def test_an_unfilled_proxy_allowlist_trusts_no_one(monkeypatch):
 
     cfg.auth.trusted_proxy.allowed_ips = ["10.0.0.1"]
     assert security.resolve_username(request) is None, "a peer off the list was believed"
+
+
+async def test_a_finished_run_notifies_the_rooms_owner(client, monkeypatch):
+    room = (await client.post("/api/rooms", json={})).json()["id"]
+    started = await client.post(f"/api/rooms/{room}/messages", json={"content": "who chairs?"})
+    run_id = started.json()["run_id"]
+    await _drain(client, run_id)
+
+    sent = []
+
+    async def fake_webpush(subscription_info, **kwargs):
+        sent.append((subscription_info, kwargs))
+
+    monkeypatch.setattr(push, "webpush_async", fake_webpush)
+    subscribed = await client.post(
+        "/api/push/subscribe",
+        json={"endpoint": "https://push.example/abc", "p256dh": "key", "auth": "secret"},
+    )
+    assert subscribed.status_code == 200, subscribed.text
+
+    await push.deliver(await push.prepare(run_id, "the council has spoken", None))
+
+    assert len(sent) == 1, "the room's owner was not told"
+    info, kwargs = sent[0]
+    assert info["endpoint"] == "https://push.example/abc"
+    assert info["keys"] == {"p256dh": "key", "auth": "secret"}
+    payload = json.loads(kwargs["data"])
+    assert payload["url"] == f"/r/{room}", "the notification did not point at its room"
+    assert payload["body"].startswith("the council has spoken")
+
+    # Unsubscribed, the same run says nothing at all.
+    await client.post("/api/push/unsubscribe", json={"endpoint": "https://push.example/abc"})
+    await push.deliver(await push.prepare(run_id, "the council has spoken", None))
+    assert len(sent) == 1
+
+
+async def test_the_vapid_private_key_never_leaves_the_server(client):
+    public = (await client.get("/api/push/key")).json()["key"]
+    assert public, "the browser was given nothing to subscribe with"
+
+    private, _ = push.keys()
+    config = (await client.get("/api/config")).text
+    assert private not in config, "the private key was served to the browser"
+    assert "vapid_private_key" not in config
 
 
 async def _attachment_path(attachment_id: str) -> str:

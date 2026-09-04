@@ -135,6 +135,15 @@ export const api = {
   saveSettings: (body: Partial<Settings>) =>
     request<Settings>("/config", { method: "PUT", body: JSON.stringify(body) }),
 
+  pushKey: () => request<{ key: string | null }>("/push/key"),
+  pushSubscribe: (body: { endpoint: string; p256dh: string; auth: string }) =>
+    request<{ ok: true }>("/push/subscribe", { method: "POST", body: JSON.stringify(body) }),
+  pushUnsubscribe: (endpoint: string) =>
+    request<{ ok: true }>("/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }),
+
   rooms: () => request<Room[]>("/rooms"),
   createRoom: () => request<Room>("/rooms", { method: "POST", body: JSON.stringify({}) }),
   renameRoom: (id: string, title: string) =>

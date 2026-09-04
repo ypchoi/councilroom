@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Provider, type Settings } from "../api";
 import { LANGS, lang, setLang, t, type Lang } from "../i18n";
+import * as push from "../push";
 import CouncilStatus from "./CouncilStatus";
 
 type Props = {
@@ -42,9 +43,13 @@ export default function SettingsPanel({
 }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Null until the service worker has been asked: this is the one setting that
+  // belongs to the device in front of the reader rather than to the account.
+  const [notify, setNotify] = useState<boolean | null>(null);
 
   useEffect(() => {
     api.settings().then(setSettings).catch((e) => setError(e.message));
+    push.subscribed().then(setNotify).catch(() => setNotify(false));
   }, []);
 
   if (!settings) {
@@ -59,6 +64,21 @@ export default function SettingsPanel({
   // /api/providers always answers with every known provider, so an empty list
   // means the probe has not come back yet — not that there are none.
   const probing = providers.length === 0;
+
+  async function toggleNotify(on: boolean) {
+    setError(null);
+    setNotify(null);
+    try {
+      if (on) setNotify(await push.enable());
+      else {
+        await push.disable();
+        setNotify(false);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+      setNotify(await push.subscribed());
+    }
+  }
 
   async function save() {
     try {
@@ -167,6 +187,26 @@ export default function SettingsPanel({
             <option value="quick">{t("quickCouncil")}</option>
             <option value="deep">{t("deepCouncil")}</option>
           </select>
+        </section>
+
+        <section className="pb-4">
+          <h3 className="pb-1 text-xs tracking-widest text-slate-500">{t("notificationsTitle")}</h3>
+          <Hint text={t("notificationsHint")} />
+          {!push.supported() ? (
+            <p className="text-[13px] text-amber-400 sm:text-xs">{t("notificationsUnsupported")}</p>
+          ) : push.blocked() ? (
+            <p className="text-[13px] text-amber-400 sm:text-xs">{t("notificationsBlocked")}</p>
+          ) : (
+            <label className="flex items-center gap-2 py-1.5 text-[15px] sm:text-sm">
+              <input
+                type="checkbox"
+                disabled={notify === null}
+                checked={notify === true}
+                onChange={(e) => toggleNotify(e.target.checked)}
+              />
+              {t("notifyThisDevice")}
+            </label>
+          )}
         </section>
 
         <section className="pb-4">
