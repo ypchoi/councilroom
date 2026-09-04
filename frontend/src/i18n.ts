@@ -227,8 +227,8 @@ const S = {
   close: { ko: "닫기", en: "Close" },
   resetDefaults: { ko: "기본값으로", en: "Reset to defaults" },
   resetConfirm: {
-    ko: "멤버, 의장, 심의 모드, 타임아웃을 기본값으로 되돌립니다. 계속할까요?",
-    en: "Put the members, chairman, modes and timeouts back to their defaults?",
+    ko: "멤버, 의장, 심의 모드, 타임아웃을 기본값으로 되돌리고, 언어는 한국어로, 이 기기의 알림은 끕니다. 계속할까요?",
+    en: "Put the members, chairman, modes and timeouts back to their defaults, the language back to Korean, and notifications on this device off?",
   },
 
   // ── Share ────────────────────────────────────────────────────────────────

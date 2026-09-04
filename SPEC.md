@@ -1143,8 +1143,9 @@ puts the shipped defaults back, and **닫기**.
   it. The field keeps what was typed; the write waits for a usable value.
 * A reset restores what the browser is allowed to set — members, chairman, modes, timeouts. The
   auth section and the VAPID pair are not the browser's to set and carry over untouched.
-* The language is the exception in the other direction: it belongs to the browser reading the page
-  and never reaches the server at all. So does whether this device wants notifications.
+* The language and whether this device wants notifications never reach the server at all — both
+  belong to the browser reading the page. A reset still puts them back (Korean, and off), since a
+  reader asking for the defaults means the ones in front of them, not the ones in the database.
 
 ---
 

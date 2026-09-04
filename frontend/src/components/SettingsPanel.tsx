@@ -103,6 +103,13 @@ export default function SettingsPanel({
       const fresh = await api.resetSettings();
       setSettings(fresh);
       onSaved(fresh);
+      // The two that never lived on the server go back as well, or a reset would
+      // leave the panel showing choices the reader did not make.
+      await push.disable();
+      setNotify(false);
+      // Reloads the page, so it goes last — and only when there is a change to
+      // make, since a reset that changed nothing should not blink the app away.
+      if (lang !== "ko") setLang("ko");
     } catch (e) {
       setError((e as Error).message);
     }
