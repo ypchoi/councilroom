@@ -1,9 +1,11 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { t } from "../i18n";
 import Icon, { type IconName } from "./Icon";
 
 type Pending = { key: string; file: File; preview?: string };
 
 type Props = {
+  /** The room is still deliberating — sending queues the question instead. */
   busy: boolean;
   maxFiles: number;
   /** Chosen per question, not per room — so it belongs in the composer's menu. */
@@ -68,7 +70,7 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
   }
 
   async function send() {
-    if (busy || sending || (!text.trim() && pending.length === 0)) return;
+    if (sending || (!text.trim() && pending.length === 0)) return;
     setSending(true);
     setError(null);
     try {
@@ -88,6 +90,9 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
       {/* Same column as the conversation, so the composer sits under the answers. */}
       <div className="mx-auto max-w-3xl">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
+      {/* Says what the button will do before it is pressed — otherwise the word
+          on it is the only warning that this question is not going out now. */}
+      {busy && <p className="pb-1 text-[12px] text-slate-500">{t("queueHint")}</p>}
       {pending.length > 0 && (
         <p className="pb-1 text-[12px] text-slate-500">
           {pending.length} / {maxFiles} attached
@@ -230,9 +235,9 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
           // button that shrinks on wide screens only leaves a gap at the top.
           className="h-11 shrink-0 rounded-full bg-accent px-5 text-[15px] font-medium text-ink disabled:opacity-40 sm:px-4"
           onClick={send}
-          disabled={busy || sending || (!text.trim() && pending.length === 0)}
+          disabled={sending || (!text.trim() && pending.length === 0)}
         >
-          {sending ? "…" : "Send"}
+          {sending ? "…" : busy ? t("queueSend") : t("send")}
         </button>
       </div>
       </div>

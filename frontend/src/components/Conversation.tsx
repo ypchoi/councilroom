@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { attachmentUrl, localTime, type Message, type Provider, type RunView } from "../api";
+import { t } from "../i18n";
 import Attachments from "./Attachments";
 import CouncilAnswer, { type LiveStatus } from "./CouncilAnswer";
 
@@ -24,6 +25,8 @@ type Props = {
   runFor: (message: Message) => RunState | null;
   /** An answer being deliberated right now, which has no message yet. */
   pending?: RunState | null;
+  /** Questions typed while the room was busy, waiting their turn to be asked. */
+  queued?: { key: string; content: string }[];
   providers: Provider[];
   /** Absent behind a share link, where nothing may be retried. */
   onRetry?: (runId: string, chairman?: string) => void;
@@ -36,6 +39,7 @@ export default function Conversation({
   messages,
   runFor,
   pending,
+  queued,
   providers,
   onRetry,
   urlFor = attachmentUrl,
@@ -138,6 +142,20 @@ export default function Conversation({
           />
         )
       )}
+
+      {/* Same bubble as a question already asked, dimmed: it is the reader's own
+          words, in the place and the order they will go out in. */}
+      {queued?.map((q) => (
+        <div
+          key={q.key}
+          className="ml-auto w-fit max-w-[85%] overflow-hidden rounded-2xl bg-mine px-3.5 py-2.5 opacity-60 sm:mr-auto sm:ml-0"
+        >
+          <p className="break-words whitespace-pre-wrap text-[16px] leading-relaxed sm:text-[15px]">
+            {q.content}
+          </p>
+          <p className="pt-1 text-right text-[11px] text-slate-400">{t("queued")}</p>
+        </div>
+      ))}
 
       {pending && (
         <CouncilAnswer

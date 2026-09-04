@@ -8,6 +8,7 @@ import {
   type Room,
   type Settings,
 } from "./api";
+import { t } from "./i18n";
 import Composer from "./components/Composer";
 import Conversation, { type RunState } from "./components/Conversation";
 import Icon from "./components/Icon";
@@ -17,6 +18,17 @@ import ShareBar from "./components/ShareBar";
 
 /** Rooms are addressable at /r/<id>; "/" is a fresh, not-yet-created room. */
 const roomFromPath = (): string | null => location.pathname.match(/^\/r\/([0-9a-f]{32})$/)?.[1] ?? null;
+
+/** A question waiting for its room's current deliberation to finish. */
+type Queued = {
+  key: string;
+  roomId: string;
+  content: string;
+  files: File[];
+  /** Carried with the question: the mode was chosen for this one, and the menu
+      may well have moved on by the time the queue reaches it. */
+  mode: "quick" | "deep";
+};
 
 function navigate(roomId: string | null) {
   const path = roomId ? `/r/${roomId}` : "/";
@@ -49,13 +61,25 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Questions typed while the room is still deliberating. They go out one at a
+  // time, in the order they were typed — never in parallel: each member keeps one
+  // session per room, and the next question's history has to contain the answer
+  // to this one.
+  const [queue, setQueue] = useState<Queued[]>([]);
+  /** Rooms with a send in flight — after ask() returns, before the run lands in `runs`. */
+  const sendingIn = useRef(new Set<string>());
+
   // Per-room: another room can still be deliberating in the background without
   // holding this room's Ask button hostage.
-  const busy = Object.values(runs).some(
-    (r) =>
-      r.roomId === roomId &&
-      (r.run === null || r.run.status === "running" || r.run.status === "pending")
-  );
+  const busyIn = (room: string | null) =>
+    room !== null &&
+    (sendingIn.current.has(room) ||
+      Object.values(runs).some(
+        (r) =>
+          r.roomId === room &&
+          (r.run === null || r.run.status === "running" || r.run.status === "pending")
+      ));
+  const busy = busyIn(roomId);
 
   // The follow() callback closes over the roomId at send time, but by the time a
   // council completes the reader may be in a different room — this ref lets the
@@ -64,6 +88,13 @@ export default function App() {
   useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
+
+  // Same reason: the popstate listener is registered once and has to ask whether
+  // the room it is being taken out of holds a conversation *now*.
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     api
@@ -99,7 +130,22 @@ export default function App() {
   // another room keeps streaming into `runs` and is picked up again when the
   // reader returns.
   useEffect(() => {
-    const onPop = () => setRoomId(roomFromPath());
+    const onPop = () => {
+      const next = roomFromPath();
+      // Android's back gesture is one stray thumb away at the edge of every
+      // screen, and it drops the reader out of a room they were mid-conversation
+      // in. Ask first; declining puts back the entry the browser just popped.
+      if (
+        roomIdRef.current &&
+        next !== roomIdRef.current &&
+        messagesRef.current.length > 0 &&
+        !confirm(t("leaveRoom"))
+      ) {
+        history.pushState({ roomId: roomIdRef.current }, "", `/r/${roomIdRef.current}`);
+        return;
+      }
+      setRoomId(next);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -193,21 +239,48 @@ export default function App() {
     return room.id;
   }
 
+  /** Uploads and asks. The room must be free — `send` and the queue see to that. */
+  async function dispatch(target: string, { content, files, mode }: Omit<Queued, "key" | "roomId">) {
+    sendingIn.current.add(target);
+    try {
+      const uploaded = await Promise.all(files.map((file) => api.upload(target, file)));
+      const started = await api.ask(target, {
+        content,
+        attachment_ids: uploaded.map((a) => a.id),
+        mode,
+      });
+      setError(null);
+      follow(started.run_id, target);
+      // The reader might have already jumped to another room while the upload was
+      // in flight; only paint their own room's freshly-added user message.
+      if (roomIdRef.current === target) await api.messages(target).then(setMessages);
+    } finally {
+      sendingIn.current.delete(target);
+    }
+  }
+
   async function send(content: string, files: File[]) {
     // The room and the uploads only happen once the user actually sends.
     const target = await ensureRoom();
-    const uploaded = await Promise.all(files.map((file) => api.upload(target, file)));
-    const started = await api.ask(target, {
-      content,
-      attachment_ids: uploaded.map((a) => a.id),
-      mode,
-    });
-    setError(null);
-    follow(started.run_id, target);
-    // The reader might have already jumped to another room while the upload was
-    // in flight; only paint their own room's freshly-added user message.
-    if (roomIdRef.current === target) await api.messages(target).then(setMessages);
+    if (busyIn(target)) {
+      setQueue((current) => [
+        ...current,
+        { key: `${Date.now()}-${Math.random()}`, roomId: target, content, files, mode },
+      ]);
+      return;
+    }
+    await dispatch(target, { content, files, mode });
   }
+
+  // The room is free again — hand it the question that has been waiting longest.
+  // Taken off the queue before the send starts, so a second pass cannot pick it
+  // up again in the moment before the run exists.
+  useEffect(() => {
+    const next = queue.find((q) => !busyIn(q.roomId));
+    if (!next) return;
+    setQueue((current) => current.filter((q) => q.key !== next.key));
+    dispatch(next.roomId, next).catch((e) => setError((e as Error).message));
+  }, [queue, runs]);
 
   async function retry(runId: string, chairman?: string) {
     if (!roomId) return;
@@ -252,6 +325,7 @@ export default function App() {
     setRoomId(null);
     setMessages([]);
     setRuns({});
+    setQueue([]);
     navigate(null);
   }
 
@@ -275,6 +349,7 @@ export default function App() {
     setRuns((current) =>
       Object.fromEntries(Object.entries(current).filter(([, r]) => r.roomId !== id))
     );
+    setQueue((current) => current.filter((q) => q.roomId !== id));
     if (roomId === id) {
       setRoomId(null);
       setMessages([]);
@@ -435,6 +510,7 @@ export default function App() {
         messages={messages}
         runFor={runFor}
         pending={pendingRun}
+        queued={queue.filter((q) => q.roomId === roomId)}
         providers={providers}
         onRetry={retry}
         empty="Ask one question. The council answers."
