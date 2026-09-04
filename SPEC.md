@@ -1194,7 +1194,7 @@ auth:
 
   trusted_proxy:
     user_header: X-Authenticated-User
-    allowed_ips: []       # peers permitted to set the header
+    allowed_ips: []       # peers permitted to set the header — empty permits none
     logout_url: null      # where the proxy ends its session
 ```
 
@@ -1229,6 +1229,10 @@ When proxy auth mode is enabled:
 * document that CouncilRoom must not be directly exposed — the header is trusted because of where
   it comes from, so anyone who can reach the app directly can claim any identity
 * restrict which peers may set the header, through `trusted_proxy.allowed_ips`
+* an empty `allowed_ips` means no peer is trusted, not that every peer is: proxy mode with the
+  list unfilled refuses every request. The unconfigured state must fail closed, since the cost of
+  getting this wrong in the other direction is that anyone who reaches the port is anyone they say
+  they are
 * check the real peer address, never `X-Forwarded-For` — a client can send that too. Uvicorn's
   proxy-header handling is therefore left off
 * keep the app bound to `127.0.0.1`, so an unreachable port and a peer check are what make the

@@ -37,7 +37,7 @@ def verify_password(password: str, stored: str | None) -> bool:
 def _proxy_username(request: Request) -> str | None:
     cfg = load_config().auth
     allowed = cfg.trusted_proxy.allowed_ips
-    if allowed and (request.client.host if request.client else None) not in allowed:
+    if (request.client.host if request.client else None) not in allowed:
         return None  # header only counts when it comes from a trusted peer
     return request.headers.get(cfg.trusted_proxy.user_header) or None
 

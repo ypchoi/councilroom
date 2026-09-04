@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import tempfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -445,6 +446,30 @@ async def test_a_lost_token_refresh_is_asked_again(monkeypatch):
 
     assert calls == 2, "the fresh token the winner left behind was never used"
     assert response.success and response.content == "ok"
+
+
+def test_an_unfilled_proxy_allowlist_trusts_no_one(monkeypatch):
+    """An empty allowed_ips is the unconfigured state, and it must fail closed:
+    trusting every peer there hands any identity to anyone who reaches the port."""
+    from councilroom import config
+
+    cfg = config.Config()
+    cfg.auth.mode = "proxy"
+    monkeypatch.setattr(security, "load_config", lambda *a, **k: cfg)
+
+    header = cfg.auth.trusted_proxy.user_header
+    request = SimpleNamespace(
+        client=SimpleNamespace(host="127.0.0.1"), headers={header: "someone@example.com"}
+    )
+
+    cfg.auth.trusted_proxy.allowed_ips = []
+    assert security.resolve_username(request) is None, "an empty allowlist trusted a peer"
+
+    cfg.auth.trusted_proxy.allowed_ips = ["127.0.0.1"]
+    assert security.resolve_username(request) == "someone@example.com"
+
+    cfg.auth.trusted_proxy.allowed_ips = ["10.0.0.1"]
+    assert security.resolve_username(request) is None, "a peer off the list was believed"
 
 
 async def _attachment_path(attachment_id: str) -> str:

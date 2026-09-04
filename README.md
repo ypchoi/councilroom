@@ -181,7 +181,7 @@ auth:
   mode: disabled          # disabled | password | proxy
   trusted_proxy:
     user_header: X-Authenticated-User
-    allowed_ips: []       # restrict which peers may set the header
+    allowed_ips: []       # peers allowed to set the header — empty trusts nobody
     logout_url: null      # where the proxy ends its session; empty hides Sign out
 ```
 
@@ -194,7 +194,9 @@ pretending to sign anyone out.
 * `password` — run `councilroom set-password` (stored as a pbkdf2-sha256 hash).
 * `proxy` — identity comes from a trusted reverse proxy header (Cloudflare Access, Authentik,
   Authelia, oauth2-proxy, …). **CouncilRoom must not be exposed directly in this mode**; set
-  `allowed_ips` to your proxy so arbitrary clients cannot forge the header.
+  `allowed_ips` to your proxy so arbitrary clients cannot forge the header. An empty list trusts
+  no peer at all, so proxy mode turns everyone away until it is filled in — a deployment that
+  forgets this locks its own door rather than leaving it open to anyone who can reach the port.
 
 The proxy check uses the real peer address, not `X-Forwarded-For`, so `councilroom serve` runs
 uvicorn with proxy headers disabled.

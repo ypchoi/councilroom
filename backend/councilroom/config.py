@@ -20,7 +20,9 @@ LOGS_DIR = HOME / "logs"
 
 class TrustedProxy(BaseModel):
     user_header: str = "X-Authenticated-User"
-    # Empty = accept the header from any peer. Set to the proxy's IPs in production.
+    # The peers whose identity header is believed. Empty trusts nobody, so proxy
+    # mode refuses everyone until the proxy's own IPs are listed here — an
+    # unconfigured deployment locks its door rather than leaving it open.
     allowed_ips: list[str] = Field(default_factory=list)
     # Where the proxy ends its own session, since that is what keeps a user signed
     # in. Provider-specific — Cloudflare Access: /cdn-cgi/access/logout,
