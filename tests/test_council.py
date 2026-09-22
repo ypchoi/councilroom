@@ -343,6 +343,7 @@ async def test_a_provider_api_error_is_not_shown_as_json(monkeypatch):
         return base.CliResult(exit_code=0, stdout=json.dumps(payload), stderr="")
 
     monkeypatch.setattr(claude, "run_cli", fake_run_cli)
+    monkeypatch.setattr(claude, "RETRY_AFTER_SECONDS", 0)
     response = await claude.ClaudeAgent(timeout=5).ask("hi", [])
 
     assert not response.success
@@ -446,6 +447,32 @@ async def test_a_lost_token_refresh_is_asked_again(monkeypatch):
 
     assert calls == 2, "the fresh token the winner left behind was never used"
     assert response.success and response.content == "ok"
+
+
+async def test_a_server_side_api_error_is_asked_again(monkeypatch):
+    """A 5xx is the server's and may pass; a 4xx is the request's and would only repeat."""
+    from councilroom.agents import base, claude
+
+    def envelope(status: int) -> base.CliResult:
+        payload = {"is_error": True, "api_error_status": status, "result": f"API Error: {status}"}
+        return base.CliResult(exit_code=0, stdout=json.dumps(payload), stderr="")
+
+    answered = base.CliResult(exit_code=0, stdout='{"result":"ok"}', stderr="")
+    monkeypatch.setattr(claude, "RETRY_AFTER_SECONDS", 0)
+
+    for status, retried in [(500, True), (400, False)]:
+        calls = 0
+
+        async def fake_run_cli(argv, **kwargs):
+            nonlocal calls
+            calls += 1
+            return envelope(status) if calls == 1 else answered
+
+        monkeypatch.setattr(claude, "run_cli", fake_run_cli)
+        response = await claude.ClaudeAgent(timeout=5).ask("hi", [])
+
+        assert calls == (2 if retried else 1), f"{status} retried={calls == 2}"
+        assert response.success is retried
 
 
 def test_an_unfilled_proxy_allowlist_trusts_no_one(monkeypatch):

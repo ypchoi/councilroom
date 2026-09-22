@@ -20,6 +20,16 @@ def _lost_the_token_race(result: CliResult) -> bool:
     return result.exit_code != 0 and "Failed to refresh OAuth token" in result.stderr + result.stdout
 
 
+def _server_side_error(result: CliResult) -> bool:
+    """A 5xx (500, 529 overloaded) is the server's trouble, not the question's, so the
+    same question may land a moment later. A 4xx would only fail again."""
+    try:
+        status = json.loads(result.stdout).get("api_error_status")
+    except (json.JSONDecodeError, AttributeError):
+        return False
+    return isinstance(status, int) and status >= 500
+
+
 class ClaudeAgent(Agent):
     name = "claude"
     label = "Claude"
@@ -87,7 +97,7 @@ class ClaudeAgent(Agent):
         # otherwise swallow a trailing positional prompt.
         stdin = self.compose_prompt(prompt, attachments)
         result = await run_cli(argv, timeout=self.timeout, stdin=stdin)
-        if _lost_the_token_race(result):
+        if _lost_the_token_race(result) or _server_side_error(result):
             await asyncio.sleep(RETRY_AFTER_SECONDS)
             result = await run_cli(argv, timeout=self.timeout, stdin=stdin)
         content = result.stdout
