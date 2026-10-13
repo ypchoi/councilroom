@@ -86,7 +86,18 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
   }
 
   return (
-    <div className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <div
+      className="border-t border-edge bg-panel px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      // Only file drags are taken over: dragging text into the draft keeps working.
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (e.dataTransfer.files.length === 0) return;
+        e.preventDefault();
+        addFiles(e.dataTransfer.files);
+      }}
+    >
       {/* Same column as the conversation, so the composer sits under the answers. */}
       <div className="mx-auto max-w-3xl">
       {error && <p className="pb-2 text-[13px] text-red-400 sm:text-xs">{error}</p>}
@@ -218,6 +229,12 @@ export default function Composer({ busy, maxFiles, mode, onMode, onSend, inputRe
           placeholder={sending ? t("asking") : t("typeSomething")}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          // A pasted screenshot arrives as a file; plain text pastes fall through.
+          onPaste={(e) => {
+            if (e.clipboardData.files.length === 0) return;
+            e.preventDefault();
+            addFiles(e.clipboardData.files);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches) {
               e.preventDefault();
